@@ -1,16 +1,17 @@
 // src/App.jsx
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import {
-    LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
-} from 'recharts';
-import {
-    WINDOW_TYPES,
-    WINDOW_COLORS,
     generateWindow,
     generateSignal,
     computeMagnitudeSpectrumDB,
     quantifyWindowMetrics
 } from './dspEngine';
+import TopBar from './components/TopBar';
+import InstrumentRack from './components/InstrumentRack';
+import SpectrumChart from './components/SpectrumChart';
+import TimeDomainChart from './components/TimeDomainChart';
+import MetricsTable from './components/MetricsTable';
+import StatusBar from './components/StatusBar';
 
 export default function App() {
     const [activeTab, setActiveTab] = useState('workbench'); // 'workbench' | 'spectrum' | 'metrics'
@@ -177,143 +178,35 @@ export default function App() {
 
     return (
         <div className="app-shell">
-            {/* Top Application Bar */}
-            <header className="topbar">
-                <div className="brand">
-                    <span className="app-badge">SP09 LAB</span>
-                    <span>Windowing & Spectral Leakage Workbench</span>
-                </div>
-                <div className="toolbar-actions">
-                    <button className="btn" onClick={() => applyPreset('coherent')}>Preset 1: Coherent (10.0 Bins)</button>
-                    <button className="btn" onClick={() => applyPreset('leakage')}>Preset 2: Leakage (10.5 Bins)</button>
-                    <button className="btn" onClick={() => applyPreset('twotone')}>Preset 3: 2-Tone Masking</button>
-                    <button className={`btn ${isMicActive ? 'btn-danger' : ''}`} onClick={toggleMicrophone}>
-                        {isMicActive ? '● Stop Live Mic' : '🎤 Live Mic Input'}
-                    </button>
-                    <button className="btn btn-primary" onClick={exportMetricsCSV}>⬇ Export CSV</button>
-                </div>
-            </header>
+            <TopBar
+                applyPreset={applyPreset}
+                isMicActive={isMicActive}
+                toggleMicrophone={toggleMicrophone}
+                exportMetricsCSV={exportMetricsCSV}
+            />
 
-            {/* Main Docked Workspace */}
             <div className="workspace">
-                {/* Left Instrument Rack */}
-                <aside className="sidebar">
-                    <div className="panel-box">
-                        <div className="panel-title">Signal Generator</div>
-                        <div className="control-group">
-                            <label>Input Source</label>
-                            <select value={signalType} onChange={(e) => setSignalType(e.target.value)}>
-                                <option value="sine">Single Sinusoid</option>
-                                <option value="dualsine">Dual Sinusoid (2-Tone)</option>
-                                <option value="square">Square Wave</option>
-                                <option value="chirp">Linear FM Chirp</option>
-                                <option value="custom">Custom File / Mic Stream</option>
-                            </select>
-                        </div>
+                <InstrumentRack
+                    signalType={signalType}
+                    setSignalType={setSignalType}
+                    customFileName={customFileName}
+                    handleFileUpload={handleFileUpload}
+                    N={N}
+                    setN={setN}
+                    fs={fs}
+                    f1={f1}
+                    setF1={setF1}
+                    f2={f2}
+                    setF2={setF2}
+                    amp2={amp2}
+                    setAmp2={setAmp2}
+                    exactBinCount={exactBinCount}
+                    selectedWindows={selectedWindows}
+                    toggleWindow={toggleWindow}
+                    activeTimeWindow={activeTimeWindow}
+                    setActiveTimeWindow={setActiveTimeWindow}
+                />
 
-                        <div className="control-group">
-                            <label>
-                                <span>Load Audio/Data (.wav, .csv)</span>
-                                {customFileName && <span style={{ color: '#3b82f6' }}>{customFileName}</span>}
-                            </label>
-                            <input type="file" accept=".wav,.mp3,.csv,.txt" onChange={handleFileUpload} />
-                        </div>
-
-                        <div className="control-group">
-                            <label>
-                                <span>Window Length (N)</span>
-                                <strong>{N} samples</strong>
-                            </label>
-                            <select value={N} onChange={(e) => setN(Number(e.target.value))}>
-                                <option value={32}>32 samples</option>
-                                <option value={64}>64 samples</option>
-                                <option value={128}>128 samples</option>
-                                <option value={256}>256 samples</option>
-                            </select>
-                        </div>
-
-                        {signalType !== 'custom' && (
-                            <>
-                                <div className="control-group">
-                                    <label>
-                                        <span>Frequency f1</span>
-                                        <strong>{f1} Hz ({exactBinCount} bins)</strong>
-                                    </label>
-                                    <input
-                                        type="range"
-                                        min="20"
-                                        max={fs / 2 - 20}
-                                        step="0.25"
-                                        value={f1}
-                                        onChange={(e) => setF1(Number(e.target.value))}
-                                    />
-                                </div>
-
-                                {(signalType === 'dualsine' || signalType === 'chirp') && (
-                                    <div className="control-group">
-                                        <label>
-                                            <span>Frequency f2</span>
-                                            <strong>{f2} Hz</strong>
-                                        </label>
-                                        <input
-                                            type="range"
-                                            min="20"
-                                            max={fs / 2 - 20}
-                                            step="0.5"
-                                            value={f2}
-                                            onChange={(e) => setF2(Number(e.target.value))}
-                                        />
-                                    </div>
-                                )}
-
-                                {signalType === 'dualsine' && (
-                                    <div className="control-group">
-                                        <label>
-                                            <span>2nd Tone Gain</span>
-                                            <strong>{(20 * Math.log10(amp2)).toFixed(1)} dB</strong>
-                                        </label>
-                                        <input
-                                            type="range"
-                                            min="0.01"
-                                            max="1"
-                                            step="0.01"
-                                            value={amp2}
-                                            onChange={(e) => setAmp2(Number(e.target.value))}
-                                        />
-                                    </div>
-                                )}
-                            </>
-                        )}
-                    </div>
-
-                    <div className="panel-box">
-                        <div className="panel-title">Active Windows Overlay</div>
-                        <div className="checkbox-list">
-                            {WINDOW_TYPES.map((wType) => (
-                                <label key={wType} className="checkbox-item">
-                                    <input
-                                        type="checkbox"
-                                        checked={selectedWindows.includes(wType)}
-                                        onChange={() => toggleWindow(wType)}
-                                    />
-                                    <span className="color-dot" style={{ backgroundColor: WINDOW_COLORS[wType] }} />
-                                    <span>{wType}</span>
-                                </label>
-                            ))}
-                        </div>
-
-                        <div className="control-group" style={{ marginTop: 12 }}>
-                            <label>Time-Domain Envelope</label>
-                            <select value={activeTimeWindow} onChange={(e) => setActiveTimeWindow(e.target.value)}>
-                                {WINDOW_TYPES.map((wType) => (
-                                    <option key={wType} value={wType}>{wType}</option>
-                                ))}
-                            </select>
-                        </div>
-                    </div>
-                </aside>
-
-                {/* Tabbed Main Instrument Viewport */}
                 <main className="viewport">
                     <div className="tab-bar">
                         <button
@@ -339,111 +232,36 @@ export default function App() {
                     <div className="viewport-content">
                         {(activeTab === 'workbench' || activeTab === 'spectrum') && (
                             <>
-                                <div className="chart-card">
-                                    <div className="chart-header">
-                                        <span>Zero-Padded Magnitude Spectrum |X(f)| (Normalized dB)</span>
-                                        <span style={{ color: '#9ca3af', fontSize: '0.8rem' }}>FFT Size: 2048 pts | fs: {fs} Hz</span>
-                                    </div>
-                                    <div style={{ flex: 1, minHeight: 220, position: 'relative' }}>
-                                        <ResponsiveContainer width="100%" height="100%" minHeight={220}>
-                                            <LineChart data={spectrumData} margin={{ top: 5, right: 20, bottom: 10, left: 0 }}>
-                                                <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
-                                                <XAxis dataKey="freq" stroke="#9ca3af" type="number" domain={[0, fs / 2]} tickCount={11} />
-                                                <YAxis domain={[-100, 0]} ticks={[0, -20, -40, -60, -80, -100]} stroke="#9ca3af" />
-                                                <Tooltip contentStyle={{ backgroundColor: '#111827', borderColor: '#374151' }} />
-                                                <Legend verticalAlign="top" height={28} />
-                                                {selectedWindows.map((wType) => (
-                                                    <Line
-                                                        key={wType}
-                                                        type="monotone"
-                                                        dataKey={wType}
-                                                        stroke={WINDOW_COLORS[wType]}
-                                                        strokeWidth={2}
-                                                        dot={false}
-                                                        isAnimationActive={false}
-                                                    />
-                                                ))}
-                                            </LineChart>
-                                        </ResponsiveContainer>
-                                    </div>
-                                </div>
-
+                                <SpectrumChart
+                                    spectrumData={spectrumData}
+                                    selectedWindows={selectedWindows}
+                                    fs={fs}
+                                />
                                 {activeTab === 'spectrum' && (
-                                    <div className="chart-card">
-                                        <div className="chart-header">
-                                            <span>Time-Domain Tapered Signal: x[n] · w[n] ({activeTimeWindow})</span>
-                                        </div>
-                                        <div style={{ flex: 1, minHeight: 180, position: 'relative' }}>
-                                            <ResponsiveContainer width="100%" height="100%" minHeight={180}>
-                                                <LineChart data={timeData}>
-                                                    <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
-                                                    <XAxis dataKey="sample" stroke="#9ca3af" />
-                                                    <YAxis domain={[-1.5, 1.5]} stroke="#9ca3af" />
-                                                    <Tooltip contentStyle={{ backgroundColor: '#111827', borderColor: '#374151' }} />
-                                                    <Legend verticalAlign="top" height={28} />
-                                                    <Line type="monotone" dataKey="raw" name="Input x[n]" stroke="#6b7280" strokeDasharray="4 4" dot={false} isAnimationActive={false} />
-                                                    <Line type="monotone" dataKey="window" name="Window w[n]" stroke="#f59e0b" strokeWidth={2} dot={false} isAnimationActive={false} />
-                                                    <Line type="monotone" dataKey="windowed" name="Windowed Output" stroke="#38bdf8" strokeWidth={2} dot={false} isAnimationActive={false} />
-                                                </LineChart>
-                                            </ResponsiveContainer>
-                                        </div>
-                                    </div>
+                                    <TimeDomainChart
+                                        timeData={timeData}
+                                        activeTimeWindow={activeTimeWindow}
+                                    />
                                 )}
                             </>
                         )}
 
                         {(activeTab === 'workbench' || activeTab === 'metrics') && (
-                            <div className="chart-card" style={{ flex: activeTab === 'metrics' ? 1 : 'unset' }}>
-                                <div className="chart-header">
-                                    <span>Real-Time Quantified Lobe Metrics (N = {N}, Δf = {binSpacing} Hz)</span>
-                                </div>
-                                <table className="metrics-table">
-                                    <thead>
-                                        <tr>
-                                            <th>Window Function</th>
-                                            <th>-3 dB Main-Lobe Width</th>
-                                            <th>Null-to-Null Width</th>
-                                            <th>Peak Side-Lobe Level (PSL)</th>
-                                            <th>Detected Signal Peak</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {metricsList.map((m) => (
-                                            <tr key={m.windowType}>
-                                                <td>
-                                                    <span className="color-dot" style={{ backgroundColor: WINDOW_COLORS[m.windowType], display: 'inline-block', marginRight: 8 }} />
-                                                    <strong>{m.windowType}</strong>
-                                                </td>
-                                                <td>{m.width3dB_Hz} Hz ({m.width3dB_Bins} bins)</td>
-                                                <td>{m.nullWidth_Hz} Hz ({m.nullWidth_Bins} bins)</td>
-                                                <td>
-                                                    <span
-                                                        className="badge"
-                                                        style={{
-                                                            backgroundColor: Number(m.peakSideLobe_dB) < -40 ? '#065f46' : Number(m.peakSideLobe_dB) < -25 ? '#1e40af' : '#7f1d1d',
-                                                            color: '#fff'
-                                                        }}
-                                                    >
-                                                        {m.peakSideLobe_dB} dB
-                                                    </span>
-                                                </td>
-                                                <td>{m.detectedFreqHz} Hz</td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
+                            <MetricsTable
+                                metricsList={metricsList}
+                                N={N}
+                                binSpacing={binSpacing}
+                                activeTab={activeTab}
+                            />
                         )}
                     </div>
                 </main>
             </div>
 
-            {/* Bottom Instrument Status Bar */}
-            <footer className="statusbar">
-                <span>STATUS: {isMicActive ? 'LIVE MICROPHONE STREAMING' : 'SYNTHETIC / FILE ENGINE READY'}</span>
-                <span>DFT BIN RESOLUTION (fs/N): {binSpacing} Hz | ZERO-PADDED FFT: 8192 BINS</span>
-                <span>IITM BS ELECTRONIC SYSTEMS — SP09 WORKBENCH</span>
-            </footer>
+            <StatusBar
+                isMicActive={isMicActive}
+                binSpacing={binSpacing}
+            />
         </div>
     );
 }
