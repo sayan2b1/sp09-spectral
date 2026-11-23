@@ -1,0 +1,277 @@
+/* src/index.css */
+:root {
+    --bg-app: #090d16;
+    --bg-panel: #111827;
+    --bg-card: #1f2937;
+    --border: #374151;
+    --text-main: #f9fafb;
+    --text-muted: #9ca3af;
+    --accent: #3b82f6;
+    --accent-hover: #2563eb;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    user-select: none;
+}
+
+body,
+html {
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+    /* Locks viewport like a native desktop app */
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    background-color: var(--bg-app);
+    color: var(--text-main);
+}
+
+.app-shell {
+    display: grid;
+    grid-template-rows: 52px 1fr 28px;
+    height: 100vh;
+    width: 100vw;
+}
+
+/* Top App Bar */
+.topbar {
+    background: var(--bg-panel);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 16px;
+}
+
+.brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 700;
+    font-size: 0.95rem;
+    letter-spacing: 0.3px;
+}
+
+.app-badge {
+    background: var(--accent);
+    color: white;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+}
+
+.toolbar-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+/* Workspace Body */
+.workspace {
+    display: grid;
+    grid-template-columns: 310px 1fr;
+    height: 100%;
+    overflow: hidden;
+}
+
+/* Left Instrument Control Rack */
+.sidebar {
+    background: var(--bg-panel);
+    border-right: 1px solid var(--border);
+    padding: 14px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.panel-box {
+    background: rgba(31, 41, 55, 0.6);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px;
+}
+
+.panel-title {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--text-muted);
+    font-weight: 700;
+    margin-bottom: 10px;
+}
+
+/* Center Viewport with Tabs */
+.viewport {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+    background: var(--bg-app);
+}
+
+.tab-bar {
+    display: flex;
+    background: var(--bg-panel);
+    border-bottom: 1px solid var(--border);
+    padding: 0 16px;
+    gap: 4px;
+}
+
+.tab-btn {
+    background: transparent;
+    color: var(--text-muted);
+    border: none;
+    border-bottom: 2px solid transparent;
+    padding: 10px 16px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.tab-btn.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+    background: rgba(59, 130, 246, 0.08);
+}
+
+.viewport-content {
+    flex: 1;
+    padding: 16px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.chart-card {
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px;
+    flex: 1;
+    min-height: 260px;
+    display: flex;
+    flex-direction: column;
+}
+
+.chart-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+/* Controls & Buttons */
+.control-group {
+    margin-bottom: 10px;
+}
+
+.control-group label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+}
+
+.control-group select,
+.control-group input[type="range"],
+.control-group input[type="file"] {
+    width: 100%;
+    padding: 6px;
+    background: var(--bg-app);
+    color: var(--text-main);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    font-size: 0.82rem;
+}
+
+.btn {
+    background: var(--bg-card);
+    color: var(--text-main);
+    border: 1px solid var(--border);
+    padding: 6px 12px;
+    border-radius: 5px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: 0.15s;
+}
+
+.btn:hover {
+    background: var(--accent);
+    border-color: var(--accent);
+}
+
+.btn-primary {
+    background: var(--accent);
+    border-color: var(--accent);
+}
+
+.btn-danger {
+    background: #dc2626;
+    border-color: #dc2626;
+}
+
+.checkbox-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.checkbox-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.84rem;
+    cursor: pointer;
+}
+
+.color-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+}
+
+/* Table */
+.metrics-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+}
+
+.metrics-table th,
+.metrics-table td {
+    padding: 10px 12px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+}
+
+.metrics-table th {
+    color: var(--text-muted);
+    background: rgba(17, 24, 39, 0.8);
+}
+
+.badge {
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-weight: 600;
+    font-size: 0.76rem;
+}
+
+/* Bottom Status Bar */
+.statusbar {
+    background: #0f172a;
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 16px;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
