@@ -507,21 +507,25 @@ input[type="range"]::-moz-range-thumb {
 .checkbox-list {
     display: flex;
     flex-direction: column;
-    gap: 7px;
+    gap: 8px;
 }
 
 .checkbox-item {
     display: flex;
+    flex-direction: row;
     align-items: center;
-    gap: 8px;
+    justify-content: flex-start;
+    gap: 10px;
     font-size: 0.82rem;
     cursor: pointer;
     user-select: none;
 }
 
 .checkbox-item input[type="checkbox"] {
-    width: 15px;
-    height: 15px;
+    width: 16px;
+    height: 16px;
+    margin: 0;
+    flex-shrink: 0;
     accent-color: var(--accent);
     cursor: pointer;
 }

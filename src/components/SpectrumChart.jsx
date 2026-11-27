@@ -79,9 +79,9 @@ export default function SpectrumChart({
                                         type="monotone"
                                         dataKey="CH2"
                                         name={`CH2 ${compareWindow}`}
-                                        stroke={compareWindow === 'Rectangular' ? '#165B8C' : (WINDOW_COLORS[compareWindow] || '#165B8C')}
+                                        stroke={isLight ? (compareWindow === 'Rectangular' ? '#165B8C' : (WINDOW_COLORS[compareWindow] || '#165B8C')) : (compareWindow === 'Rectangular' ? '#fbbf24' : (WINDOW_COLORS[compareWindow] || '#fbbf24'))}
                                         strokeWidth={1.8}
-                                        strokeDasharray="4 4"
+                                        strokeDasharray="4 3"
                                         dot={false}
                                         isAnimationActive={false}
                                     />

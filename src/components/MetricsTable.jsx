@@ -23,7 +23,7 @@ export default function MetricsTable({ metricsList, N, binSpacing, activeTab, th
                             <th>-3 dB Main-Lobe Width</th>
                             <th>Null-to-Null Width</th>
                             <th>Measured PSL (dB)</th>
-                            <th>Leaked Power Ratio (%)</th>
+                            <th>Leaked Power Ratio (%) <span style={{ fontSize: '0.74rem', opacity: 0.85, fontWeight: 'normal' }}>(Window Benchmark)</span></th>
                             <th>Detected Peak</th>
                         </tr>
                     </thead>

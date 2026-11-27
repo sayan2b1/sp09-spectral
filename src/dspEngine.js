@@ -31,7 +31,7 @@
 export const WINDOW_SPECS = {
     'Rectangular': { name: 'Rectangular', psll: '-13.3 dB', mainLobeBins: 1, color: '#ef4444' },
     'Hann':        { name: 'Hann',        psll: '-31.5 dB', mainLobeBins: 2, color: '#10b981' },
-    'Hamming':     { name: 'Hamming',     psll: '-43.2 dB', mainLobeBins: 2, color: '#38bdf8' },
+    'Hamming':     { name: 'Hamming',     psll: '-42.7 dB', mainLobeBins: 2, color: '#38bdf8' },
     'Blackman':    { name: 'Blackman',    psll: '-58.1 dB', mainLobeBins: 3, color: '#a855f7' },
     'Flat-Top':    { name: 'Flat-Top',    psll: '-93.0 dB', mainLobeBins: 5, color: '#ec4899' },
     'Bartlett':    { name: 'Bartlett',    psll: '-26.5 dB', mainLobeBins: 2, color: '#f59e0b' }
