@@ -286,6 +286,34 @@ html, body {
     color: #ffffff;
 }
 
+/* SETUPS Active Tab Highlighting */
+.setup-btn {
+    position: relative;
+    transition: all 0.15s ease;
+}
+
+.setup-btn.active {
+    background: var(--accent) !important;
+    color: #ffffff !important;
+    border-color: var(--accent) !important;
+    font-weight: 700;
+    box-shadow: 0 0 10px rgba(59, 130, 246, 0.45);
+}
+
+.setup-btn .active-dot {
+    font-size: 0.65rem;
+    margin-right: 2px;
+    color: #ffffff;
+    display: inline-block;
+    animation: pulse-dot 1.5s infinite ease-in-out;
+}
+
+@keyframes pulse-dot {
+    0% { opacity: 0.4; transform: scale(0.85); }
+    50% { opacity: 1; transform: scale(1.15); }
+    100% { opacity: 0.4; transform: scale(0.85); }
+}
+
 .btn-sidebar-toggle {
     border-color: var(--border);
     font-weight: 700;

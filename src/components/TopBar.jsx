@@ -3,6 +3,7 @@ import React from 'react';
 
 export default function TopBar({
     applyPreset,
+    activePreset,
     isMicActive,
     toggleMicrophone,
     exportMetricsCSV,
@@ -39,31 +40,35 @@ export default function TopBar({
             <div className="toolbar-actions">
                 <span className="strip-label">SETUPS:</span>
                 <button
-                    className="btn"
+                    className={`btn setup-btn ${activePreset === 'coherent' ? 'active' : ''}`}
                     onClick={() => applyPreset('coherent')}
                     title="Coherent Lock: Exact integer cycles (k = 10.000) -> 0.00% Leakage"
                 >
+                    {activePreset === 'coherent' && <span className="active-dot">●</span>}
                     Coherent Lock
                 </button>
                 <button
-                    className="btn"
+                    className={`btn setup-btn ${activePreset === 'leakage' ? 'active' : ''}`}
                     onClick={() => applyPreset('leakage')}
                     title="Half-Bin Leakage: Non-integer cycles (k = 10.500) -> Maximum Leakage"
                 >
+                    {activePreset === 'leakage' && <span className="active-dot">●</span>}
                     Half-Bin Leakage
                 </button>
                 <button
-                    className="btn"
+                    className={`btn setup-btn ${activePreset === 'twotone' ? 'active' : ''}`}
                     onClick={() => applyPreset('twotone')}
                     title="Two-Tone Masking: Strong tone (0 dB) + Weak tone (-32 dB @ +18 Hz)"
                 >
+                    {activePreset === 'twotone' && <span className="active-dot">●</span>}
                     Two-Tone Masking
                 </button>
                 <button
-                    className="btn"
+                    className={`btn setup-btn ${activePreset === 'zeropad' ? 'active' : ''}`}
                     onClick={() => applyPreset('zeropad')}
                     title="8x Zero-Pad: Continuous DTFT lobe interpolation and side lobes"
                 >
+                    {activePreset === 'zeropad' && <span className="active-dot">●</span>}
                     8x Zero-Pad
                 </button>
 

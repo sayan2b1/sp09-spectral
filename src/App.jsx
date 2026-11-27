@@ -37,6 +37,7 @@ export default function App() {
     });
 
     const [activeTab, setActiveTab] = useState('workbench'); // 'workbench' | 'spectrum' | 'metrics'
+    const [activePreset, setActivePreset] = useState('leakage'); // 'coherent' | 'leakage' | 'twotone' | 'zeropad' | null
 
     // DSP Parameters (matching & extending Ahmad's SPEC-01)
     const [signalType, setSignalType] = useState('sine');
@@ -77,6 +78,7 @@ export default function App() {
     };
 
     const toggleWindow = (wType) => {
+        setActivePreset(null);
         setSelectedWindows((prev) =>
             prev.includes(wType) ? prev.filter((item) => item !== wType) : [...prev, wType]
         );
@@ -104,6 +106,7 @@ export default function App() {
             setFs(audioCtx.sampleRate);
             setDuration(buffer.length / audioCtx.sampleRate);
             setSignalType('custom');
+            setActivePreset(null);
             setIsMicActive(true);
 
             micIntervalRef.current = setInterval(() => {
@@ -134,6 +137,7 @@ export default function App() {
                 setCustomSamples(nums);
                 setDuration(nums.length / fs);
                 setSignalType('custom');
+                setActivePreset(null);
             }
         } else {
             const arrayBuffer = await file.arrayBuffer();
@@ -146,6 +150,7 @@ export default function App() {
             setFs(audioCtx.sampleRate);
             setDuration(numSamples / audioCtx.sampleRate);
             setSignalType('custom');
+            setActivePreset(null);
         }
     };
 
@@ -153,6 +158,7 @@ export default function App() {
     const applyPreset = (preset) => {
         if (isMicActive) toggleMicrophone();
         setFs(1000);
+        setActivePreset(preset);
 
         if (preset === 'coherent') {
             setSignalType('sine');
@@ -192,6 +198,16 @@ export default function App() {
             setMagScale('db');
         }
     };
+
+    // Manual setters that unlatch activePreset when user customizes parameters
+    const onSetF0 = (val) => { setF0(val); setActivePreset(null); };
+    const onSetDuration = (val) => { setDuration(val); setActivePreset(null); };
+    const onSetFs = (val) => { setFs(val); setActivePreset(null); };
+    const onSetSignalType = (val) => { setSignalType(val); setActivePreset(null); };
+    const onSetPrimaryWindow = (val) => { setPrimaryWindow(val); setActivePreset(null); };
+    const onSetCompareWindow = (val) => { setCompareWindow(val); setActivePreset(null); };
+    const onSetZeroPadFactor = (val) => { setZeroPadFactor(val); setActivePreset(null); };
+    const onSetOverlayMode = (val) => { setOverlayMode(val); setActivePreset(null); };
 
     // Exact Sample count N (arbitrary integer)
     const N = Math.max(16, Math.round(fs * duration));
@@ -298,6 +314,7 @@ export default function App() {
         <div className="app-shell">
             <TopBar
                 applyPreset={applyPreset}
+                activePreset={activePreset}
                 isMicActive={isMicActive}
                 toggleMicrophone={toggleMicrophone}
                 exportMetricsCSV={exportMetricsCSV}
@@ -327,26 +344,26 @@ export default function App() {
                     isSidebarOpen={isSidebarOpen}
                     toggleSidebar={toggleSidebar}
                     signalType={signalType}
-                    setSignalType={setSignalType}
+                    setSignalType={onSetSignalType}
                     f0={f0}
-                    setF0={setF0}
+                    setF0={onSetF0}
                     fs={fs}
-                    setFs={setFs}
+                    setFs={onSetFs}
                     duration={duration}
-                    setDuration={setDuration}
+                    setDuration={onSetDuration}
                     N={N}
                     primaryWindow={primaryWindow}
-                    setPrimaryWindow={setPrimaryWindow}
+                    setPrimaryWindow={onSetPrimaryWindow}
                     compareWindow={compareWindow}
-                    setCompareWindow={setCompareWindow}
+                    setCompareWindow={onSetCompareWindow}
                     zeroPadFactor={zeroPadFactor}
-                    setZeroPadFactor={setZeroPadFactor}
+                    setZeroPadFactor={onSetZeroPadFactor}
                     magScale={magScale}
                     setMagScale={setMagScale}
                     selectedWindows={selectedWindows}
                     toggleWindow={toggleWindow}
                     overlayMode={overlayMode}
-                    setOverlayMode={setOverlayMode}
+                    setOverlayMode={onSetOverlayMode}
                     customFileName={customFileName}
                     handleFileUpload={handleFileUpload}
                 />
