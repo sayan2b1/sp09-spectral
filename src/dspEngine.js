@@ -1,354 +1,347 @@
 /**
  * ===================================================================================================
- *  SP09: WINDOWING EFFECTS ON SPECTRAL LEAKAGE ANALYZER — PURE JS DSP ENGINE
+ *  SP09 / SPEC-01: ADVANCED DSP ENGINE
+ *  Windowing Effects, Spectral Leakage, Bluestein Arbitrary-N FFT, and Telemetry Quantification
  * ===================================================================================================
  * 
- *  Theoretical Context (Academic Reference for DSP Lab & Viva):
- *  ------------------------------------------------------------
- *  1. Finite-Length Windowing & Leakage:
- *     In practical DSP, observing an analog or discrete signal x[n] over a finite duration of N samples
- *     is mathematically equivalent to multiplying the infinite signal by a window function w[n]:
- *         x_w[n] = x[n] · w[n],   n = 0, 1, ..., N - 1
- *     By the Fourier Modulation / Convolution theorem, multiplication in the discrete-time domain
- *     corresponds to circular/periodic convolution in the continuous frequency domain (DTFT):
- *         X_w(e^{jω}) = (1 / 2π) · X(e^{jω}) ⊛ W(e^{jω})
- *     
- *     If the input sinusoid has an integer number of cycles within N samples (coherent sampling), its
- *     DTFT energy falls precisely on DFT bin centers, and all window sidelobes cross zero at adjacent bins.
- *     However, when the signal frequency is non-integer (non-coherent sampling), the energy spills into
- *     all neighboring DFT frequency bins. This phenomenon is known as "Spectral Leakage".
+ *  Theoretical Framework:
+ *  ---------------------
+ *  1. Bluestein's Chirp-Z Algorithm:
+ *     Computes the exact discrete Fourier transform (DFT) for ANY arbitrary sample count N (prime,
+ *     composite, or non-power-of-2 like N = 150, 210) by rewriting the DFT as a circular convolution
+ *     using the identity nk = -(k - n)^2 / 2 + n^2 / 2 + k^2 / 2:
+ *         X[k] = W^{k^2/2} · sum_{n=0}^{N-1} (x[n] · W^{n^2/2}) · W^{-(k-n)^2/2}
+ *     This convolution is evaluated in O(M log M) via zero-padded Radix-2 FFT where M >= 2N - 1.
  * 
- *  2. The Window Tradeoff (Main-Lobe Width vs. Peak Side-Lobe Level):
- *     - Rectangular Window: Sharpest main-lobe (0.89 bin -3 dB width), but severe discontinuities at
- *       the edges create high side lobes (-13.3 dB PSL) decaying slowly at -6 dB/octave.
- *     - Tapered Windows (Bartlett, Hann, Hamming, Blackman): Smoothly decay to zero at boundaries,
- *       drastically suppressing side-lobe leakage (e.g., -31.5 dB for Hann, -42.7 dB for Hamming,
- *       -58.1 dB for Blackman), at the cost of broadening the main lobe (reducing frequency resolution).
+ *  2. Coherent Gain (CG) Normalization:
+ *     For any window w[n], its DC / coherent gain is defined as:
+ *         CG = (1 / N) · sum_{n=0}^{N-1} w[n]
+ *     Normalizing single-sided FFT magnitude by (N · CG) ensures that a full-scale sinusoid at the
+ *     bin center always has peak magnitude exactly 0 dB (1.0 linear), allowing unbiased side-lobe
+ *     and leakage comparisons across different window families.
  * 
- *  3. Zero-Padding FFT:
- *     Zero-padding an N-point windowed sequence to N_fft points (e.g., 2048 or 8192) does NOT increase
- *     physical frequency resolution (which is governed strictly by the record length N · Ts), but it
- *     evaluates the DTFT at denser frequency samples on the unit circle, revealing the exact continuous
- *     lobes and sidelobe structure without picket-fence scalloping distortion.
+ *  3. Leaked Power Ratio (%):
+ *     Measures the percentage of total spectral energy falling outside the main-lobe bandwidth:
+ *         Leaked Power (%) = max(0, (1 - P_main / P_total) * 100)
+ *     When sampling is coherent (integer cycles k = f0 * T), leaked power is 0.00%.
+ *     Under half-bin non-coherent conditions, power leaks into all adjacent sidelobes.
  * ===================================================================================================
  */
 
-/**
- * Standard DSP Window Types supported by the analyzer
- */
-export const WINDOW_TYPES = ['Rectangular', 'Hann', 'Hamming', 'Blackman', 'Bartlett'];
-
-/**
- * High-contrast visualization color map for spectral overlay plots
- */
-export const WINDOW_COLORS = {
-    'Rectangular': '#ef4444', // Red / Crimson
-    'Bartlett': '#f59e0b',    // Amber / Gold
-    'Hann': '#10b981',        // Emerald / Green
-    'Hamming': '#38bdf8',     // Sky Blue / Cyan
-    'Blackman': '#a855f7'     // Purple / Violet
+export const WINDOW_SPECS = {
+    'Rectangular': { name: 'Rectangular', psll: '-13.3 dB', mainLobeBins: 1, color: '#ef4444' },
+    'Hann':        { name: 'Hann',        psll: '-31.5 dB', mainLobeBins: 2, color: '#10b981' },
+    'Hamming':     { name: 'Hamming',     psll: '-43.2 dB', mainLobeBins: 2, color: '#38bdf8' },
+    'Blackman':    { name: 'Blackman',    psll: '-58.1 dB', mainLobeBins: 3, color: '#a855f7' },
+    'Flat-Top':    { name: 'Flat-Top',    psll: '-93.0 dB', mainLobeBins: 5, color: '#ec4899' },
+    'Bartlett':    { name: 'Bartlett',    psll: '-26.5 dB', mainLobeBins: 2, color: '#f59e0b' }
 };
 
+export const WINDOW_TYPES = Object.keys(WINDOW_SPECS);
+
+export const WINDOW_COLORS = Object.fromEntries(
+    Object.entries(WINDOW_SPECS).map(([k, v]) => [k, v.color])
+);
+
 /**
- * Generates symmetric discrete window coefficients w[n] for n = 0, ..., N - 1.
- *
- * Mathematical Formulations:
- * - Rectangular: w[n] = 1.0
- * - Bartlett (Triangular): w[n] = 1.0 - |2n - (N-1)| / (N-1)
- * - Hann: w[n] = 0.5 - 0.5 · cos(2πn / (N-1))
- * - Hamming: w[n] = 0.54 - 0.46 · cos(2πn / (N-1))
- * - Blackman: w[n] = 0.42 - 0.5 · cos(2πn / (N-1)) + 0.08 · cos(4πn / (N-1))
- *
- * @param {string} wType - Name of the window ('Rectangular', 'Hann', 'Hamming', 'Blackman', 'Bartlett')
- * @param {number} N - Length of the window in samples
- * @returns {Float64Array} Window coefficients of length N
+ * Computes window coefficients w[n] of length N.
  */
 export function generateWindow(wType, N) {
     const w = new Float64Array(N);
-    if (N <= 1) {
-        if (N === 1) w[0] = 1.0;
+    if (N <= 0) return w;
+    if (N === 1) {
+        w[0] = 1.0;
         return w;
     }
 
-    const denom = N - 1;
-    const twoPiOverDenom = (2.0 * Math.PI) / denom;
-    const fourPiOverDenom = (4.0 * Math.PI) / denom;
-
-    switch (wType) {
-        case 'Rectangular':
-            w.fill(1.0);
-            break;
-
-        case 'Bartlett':
-            for (let n = 0; n < N; n++) {
-                w[n] = 1.0 - Math.abs((2.0 * n - denom) / denom);
-            }
-            break;
-
-        case 'Hann':
-            for (let n = 0; n < N; n++) {
-                w[n] = 0.5 - 0.5 * Math.cos(twoPiOverDenom * n);
-            }
-            break;
-
-        case 'Hamming':
-            for (let n = 0; n < N; n++) {
-                w[n] = 0.54 - 0.46 * Math.cos(twoPiOverDenom * n);
-            }
-            break;
-
-        case 'Blackman':
-            for (let n = 0; n < N; n++) {
-                w[n] = 0.42 - 0.5 * Math.cos(twoPiOverDenom * n) + 0.08 * Math.cos(fourPiOverDenom * n);
-            }
-            break;
-
-        default:
-            w.fill(1.0);
-            break;
+    if (wType === 'Rectangular') {
+        w.fill(1.0);
+        return w;
     }
 
+    const twoPi = 2.0 * Math.PI;
+
+    for (let n = 0; n < N; n++) {
+        const p = (twoPi * n) / N;
+        switch (wType) {
+            case 'Hann':
+                w[n] = 0.5 * (1.0 - Math.cos(p));
+                break;
+            case 'Hamming':
+                w[n] = 0.54 - 0.46 * Math.cos(p);
+                break;
+            case 'Blackman':
+                w[n] = 0.42 - 0.5 * Math.cos(p) + 0.08 * Math.cos(2.0 * p);
+                break;
+            case 'Flat-Top':
+                // ISO / standard 5-term Flat-Top window for high amplitude calibration
+                w[n] = 0.21557895
+                     - 0.41663158 * Math.cos(p)
+                     + 0.277263158 * Math.cos(2.0 * p)
+                     - 0.083578947 * Math.cos(3.0 * p)
+                     + 0.006947368 * Math.cos(4.0 * p);
+                break;
+            case 'Bartlett':
+                w[n] = 1.0 - Math.abs((2.0 * n - (N - 1)) / (N - 1));
+                break;
+            default:
+                w[n] = 1.0;
+        }
+    }
     return w;
 }
 
 /**
- * Generates synthetic or extracts custom discrete-time signals x[n] of length N.
- *
- * @param {Object} params - Signal configuration options
- * @param {string} params.signalType - 'sine' | 'dualsine' | 'square' | 'chirp' | 'custom'
- * @param {number} params.N - Number of samples
- * @param {number} params.fs - Sampling frequency (Hz)
- * @param {number} params.f1 - Fundamental frequency 1 (Hz)
- * @param {number} params.f2 - Secondary frequency 2 (Hz)
- * @param {number} params.amp2 - Relative amplitude of tone 2 (linear gain)
- * @param {Array<number>|Float32Array|Float64Array} [params.customSamples] - User uploaded or streamed samples
- * @returns {Float64Array} Signal samples of length N
+ * Signal Generator supporting Single Tone, Two-Tone Masking, Square Wave, Multi-Tone, Chirp, and File/Mic.
  */
-export function generateSignal({ signalType, N, fs, f1, f2, amp2 = 0.1, customSamples }) {
-    const x = new Float64Array(N);
-
-    if (signalType === 'custom' && customSamples && customSamples.length > 0) {
-        const copyLen = Math.min(N, customSamples.length);
-        for (let i = 0; i < copyLen; i++) {
-            x[i] = Number(customSamples[i]) || 0;
+export function generateSignal(type, N, fs, f0, f2 = 250, amp2 = 0.025, customSamples = null) {
+    if (type === 'custom' && customSamples && customSamples.length > 0) {
+        const x = new Float64Array(N);
+        const len = customSamples.length;
+        for (let n = 0; n < N; n++) {
+            x[n] = customSamples[n % len];
         }
         return x;
     }
 
-    const Ts = 1.0 / fs;
+    const x = new Float64Array(N);
+    const twoPiF0 = 2.0 * Math.PI * f0;
 
-    switch (signalType) {
-        case 'sine':
-            for (let n = 0; n < N; n++) {
-                const t = n * Ts;
-                x[n] = Math.sin(2.0 * Math.PI * f1 * t);
-            }
-            break;
-
-        case 'dualsine':
-            for (let n = 0; n < N; n++) {
-                const t = n * Ts;
-                x[n] = Math.sin(2.0 * Math.PI * f1 * t) + amp2 * Math.sin(2.0 * Math.PI * f2 * t);
-            }
-            break;
-
-        case 'square':
-            for (let n = 0; n < N; n++) {
-                const t = n * Ts;
-                const s = Math.sin(2.0 * Math.PI * f1 * t);
-                x[n] = s >= 0 ? 1.0 : -1.0;
-            }
-            break;
-
-        case 'chirp': {
-            // Linear frequency modulation: instantaneous frequency sweeps f1 -> f2 across total duration T
-            const T = N * Ts;
-            const chirpRate = (f2 - f1) / (2.0 * T);
-            for (let n = 0; n < N; n++) {
-                const t = n * Ts;
-                const phase = 2.0 * Math.PI * (f1 * t + chirpRate * t * t);
-                x[n] = Math.sin(phase);
-            }
-            break;
+    for (let n = 0; n < N; n++) {
+        const tn = n / fs;
+        switch (type) {
+            case 'two_tone':
+            case 'dualsine':
+                // Strong tone (0 dB) + Weak tone (-32 dB at f0 + 18 Hz, or user-selected f2/amp2)
+                x[n] = Math.sin(twoPiF0 * tn) + amp2 * Math.sin(2.0 * Math.PI * (f2 || (f0 + 18.0)) * tn);
+                break;
+            case 'square':
+                x[n] = Math.sin(twoPiF0 * tn) >= 0 ? 1.0 : -1.0;
+                break;
+            case 'multi_tone':
+                // 3-Tone composite signal (f0 + 1.5*f0 + 2.2*f0)
+                x[n] = Math.sin(twoPiF0 * tn)
+                     + 0.4 * Math.sin(2.0 * Math.PI * (f0 * 1.5) * tn)
+                     + 0.15 * Math.sin(2.0 * Math.PI * (f0 * 2.2) * tn);
+                break;
+            case 'chirp':
+                // Linear Frequency Modulated chirp from 20 Hz to fs/2 - 20 Hz
+                const fStart = 20.0;
+                const fEnd = Math.max(fStart + 50.0, fs / 2.0 - 20.0);
+                const chirpDuration = N / fs;
+                const chirpRate = (fEnd - fStart) / (2.0 * chirpDuration);
+                x[n] = Math.sin(2.0 * Math.PI * (fStart * tn + chirpRate * tn * tn));
+                break;
+            case 'sine':
+            default:
+                x[n] = Math.sin(twoPiF0 * tn);
+                break;
         }
-
-        default:
-            for (let n = 0; n < N; n++) {
-                const t = n * Ts;
-                x[n] = Math.sin(2.0 * Math.PI * f1 * t);
-            }
-            break;
     }
-
     return x;
 }
 
 /**
- * Pure JavaScript In-Place Radix-2 Cooley-Tukey Fast Fourier Transform (Decimation-in-Time).
- * 
- * Mathematical Formulation:
- * -------------------------
- * Computes the Discrete Fourier Transform:
- *     X[k] = \sum_{n=0}^{N-1} x[n] · e^{-j · 2π · k · n / N},   k = 0, 1, ..., N - 1
- * 
- * Algorithm Steps:
- * 1. Bit-Reversal Permutation: Reorders input data so that time samples are decimated
- *    into odd and even sub-sequences in O(N) operations.
- * 2. Butterfly Computations: Combines 2-point, 4-point, ..., N-point sub-transforms
- *    using precalculated complex twiddle factors W_N^k = e^{-j · 2π · k / N}.
- *    Overall computational complexity is reduced from O(N^2) to O(N log2 N).
- * 
- * @param {Float64Array} real - Real part of complex sequence (length must be power of 2)
- * @param {Float64Array} imag - Imaginary part of complex sequence (length must be power of 2)
+ * Radix-2 Decimation-In-Time FFT with bit-reversal permutation (in-place).
  */
-function cooleyTukeyFFT(real, imag) {
-    const n = real.length;
-
-    // 1. Bit-reversal permutation
-    let j = 0;
-    for (let i = 0; i < n - 1; i++) {
+export function fftRadix2(re, im, inverse = false) {
+    const n = re.length;
+    for (let i = 1, j = 0; i < n; i++) {
+        let bit = n >> 1;
+        for (; j & bit; bit >>= 1) j ^= bit;
+        j ^= bit;
         if (i < j) {
-            const tr = real[i]; real[i] = real[j]; real[j] = tr;
-            const ti = imag[i]; imag[i] = imag[j]; imag[j] = ti;
+            const tr = re[i]; re[i] = re[j]; re[j] = tr;
+            const ti = im[i]; im[i] = im[j]; im[j] = ti;
         }
-        let k = n >> 1;
-        while (k <= j) {
-            j -= k;
-            k >>= 1;
-        }
-        j += k;
     }
 
-    // 2. Radix-2 Butterfly stages (log2(n) iterations)
+    const sign = inverse ? 1.0 : -1.0;
     for (let len = 2; len <= n; len <<= 1) {
-        const halfLen = len >> 1;
-        const angle = (-2.0 * Math.PI) / len;
-        const wStepReal = Math.cos(angle);
-        const wStepImag = Math.sin(angle);
+        const half = len >> 1;
+        const angle = (sign * 2.0 * Math.PI) / len;
+        const wLenRe = Math.cos(angle);
+        const wLenIm = Math.sin(angle);
 
         for (let i = 0; i < n; i += len) {
-            let wReal = 1.0;
-            let wImag = 0.0;
+            let wRe = 1.0, wIm = 0.0;
+            for (let j = 0; j < half; j++) {
+                const uRe = re[i + j], uIm = im[i + j];
+                const vRe = re[i + j + half] * wRe - im[i + j + half] * wIm;
+                const vIm = re[i + j + half] * wIm + im[i + j + half] * wRe;
 
-            for (let k = 0; k < halfLen; k++) {
-                const uReal = real[i + k];
-                const uImag = imag[i + k];
+                re[i + j] = uRe + vRe;
+                im[i + j] = uIm + vIm;
+                re[i + j + half] = uRe - vRe;
+                im[i + j + half] = uIm - vIm;
 
-                const vReal = real[i + k + halfLen] * wReal - imag[i + k + halfLen] * wImag;
-                const vImag = real[i + k + halfLen] * wImag + imag[i + k + halfLen] * wReal;
-
-                real[i + k] = uReal + vReal;
-                imag[i + k] = uImag + vImag;
-                real[i + k + halfLen] = uReal - vReal;
-                imag[i + k + halfLen] = uImag - vImag;
-
-                const nextWReal = wReal * wStepReal - wImag * wStepImag;
-                const nextWImag = wReal * wStepImag + wImag * wStepReal;
-                wReal = nextWReal;
-                wImag = nextWImag;
+                const nextRe = wRe * wLenRe - wIm * wLenIm;
+                wIm = wRe * wLenIm + wIm * wLenRe;
+                wRe = nextRe;
             }
         }
     }
+
+    if (inverse) {
+        for (let i = 0; i < n; i++) {
+            re[i] /= n;
+            im[i] /= n;
+        }
+    }
 }
 
 /**
- * Computes the zero-padded magnitude spectrum in normalized decibels (dB).
- * 
- * The zero-padded sequence x_pad of length N_fft is processed through the Radix-2 FFT.
- * Magnitude values |X[k]| are normalized relative to the maximum spectral peak:
- *     Mag_dB[k] = 20 · log10( |X[k]| / max(|X|) )
- * 
- * This normalization ensures that the main peak is fixed at 0 dB, providing an immediate,
- * standardized baseline to compare side-lobe attenuation across different window types.
- *
- * @param {Float64Array|Array<number>} windowedSig - Windowed time-domain sequence of length N
- * @param {number} N_fft - Desired FFT size (must be power of 2, e.g., 2048 or 8192)
- * @returns {Float64Array} Normalized magnitude spectrum in dB (clamped to [-100, 0] dB)
+ * Bluestein's Arbitrary-Length Exact FFT Algorithm.
+ * Allows computing exact N-point DFT for ANY integer N in O(N log N).
  */
-export function computeMagnitudeSpectrumDB(windowedSig, N_fft = 2048) {
-    // Ensure power of 2
-    let nPowerOf2 = 1;
-    while (nPowerOf2 < N_fft) nPowerOf2 <<= 1;
-    const fftSize = nPowerOf2;
+export function bluesteinFFT(inputReal) {
+    const n = inputReal.length;
+    const re = new Float64Array(n);
+    const im = new Float64Array(n);
+    re.set(inputReal);
 
-    const real = new Float64Array(fftSize);
-    const imag = new Float64Array(fftSize);
-
-    // Copy windowed sequence into real buffer; remaining elements are 0 (zero-padding)
-    const copyLen = Math.min(windowedSig.length, fftSize);
-    for (let i = 0; i < copyLen; i++) {
-        real[i] = windowedSig[i];
+    // If power of 2, use fast Radix-2 directly
+    if ((n & (n - 1)) === 0) {
+        fftRadix2(re, im, false);
+        return { re, im };
     }
 
-    // Execute pure Radix-2 Cooley-Tukey FFT
-    cooleyTukeyFFT(real, imag);
+    // Power-of-2 size m >= 2n - 1
+    let m = 1;
+    while (m < 2 * n - 1) m <<= 1;
 
-    // Compute linear magnitudes
-    const mag = new Float64Array(fftSize);
-    let maxMag = 0.0;
-    for (let k = 0; k < fftSize; k++) {
-        const m = Math.sqrt(real[k] * real[k] + imag[k] * imag[k]);
-        mag[k] = m;
-        if (m > maxMag) maxMag = m;
+    const cosT = new Float64Array(n);
+    const sinT = new Float64Array(n);
+    for (let i = 0; i < n; i++) {
+        const angle = (Math.PI * ((i * i) % (2 * n))) / n;
+        cosT[i] = Math.cos(angle);
+        sinT[i] = Math.sin(angle);
     }
 
-    // Compute normalized magnitude spectrum in dB
-    const magDB = new Float64Array(fftSize);
-    const floorDB = -100.0; // Clamped display floor matching Recharts Y-axis domain [-100, 5]
-
-    if (maxMag <= 1e-12) {
-        magDB.fill(floorDB);
-        return magDB;
+    const aRe = new Float64Array(m);
+    const aIm = new Float64Array(m);
+    for (let i = 0; i < n; i++) {
+        aRe[i] = re[i] * cosT[i] + im[i] * sinT[i];
+        aIm[i] = -re[i] * sinT[i] + im[i] * cosT[i];
     }
 
-    for (let k = 0; k < fftSize; k++) {
-        const ratio = mag[k] / maxMag;
-        if (ratio <= 1e-5) {
-            magDB[k] = floorDB;
-        } else {
-            const db = 20.0 * Math.log10(ratio);
-            magDB[k] = db < floorDB ? floorDB : db;
+    const bRe = new Float64Array(m);
+    const bIm = new Float64Array(m);
+    bRe[0] = cosT[0];
+    bIm[0] = sinT[0];
+    for (let i = 1; i < n; i++) {
+        bRe[i] = bRe[m - i] = cosT[i];
+        bIm[i] = bIm[m - i] = sinT[i];
+    }
+
+    fftRadix2(aRe, aIm, false);
+    fftRadix2(bRe, bIm, false);
+
+    for (let i = 0; i < m; i++) {
+        const tmpRe = aRe[i] * bRe[i] - aIm[i] * bIm[i];
+        const tmpIm = aRe[i] * bIm[i] + aIm[i] * bRe[i];
+        aRe[i] = tmpRe;
+        aIm[i] = tmpIm;
+    }
+
+    fftRadix2(aRe, aIm, true);
+
+    const outRe = new Float64Array(n);
+    const outIm = new Float64Array(n);
+    for (let i = 0; i < n; i++) {
+        outRe[i] = aRe[i] * cosT[i] + aIm[i] * sinT[i];
+        outIm[i] = -aRe[i] * sinT[i] + aIm[i] * cosT[i];
+    }
+    return { re: outRe, im: outIm };
+}
+
+/**
+ * Computes single-sided magnitude spectrum with coherent gain normalization, zero-padding,
+ * and measures Leaked Power Ratio (%).
+ */
+export function computeSpectrum(x, windowType, fs, zeroPadFactor = 1) {
+    const N = x.length;
+    const w = generateWindow(windowType, N);
+    const y = new Float64Array(N);
+
+    let cg = 0.0;
+    for (let n = 0; n < N; n++) {
+        y[n] = x[n] * w[n];
+        cg += w[n];
+    }
+    cg /= N;
+
+    const nFFT = N * zeroPadFactor;
+    const padded = new Float64Array(nFFT);
+    padded.set(y);
+
+    const { re, im } = bluesteinFFT(padded);
+    const numBins = Math.floor(nFFT / 2) + 1;
+
+    const freqs = new Float64Array(numBins);
+    const magLinear = new Float64Array(numBins);
+    const magDb = new Float64Array(numBins);
+    const scale = (N * cg) / 2.0;
+
+    for (let k = 0; k < numBins; k++) {
+        freqs[k] = (k * fs) / nFFT;
+        const raw = Math.hypot(re[k], im[k]);
+        const norm = (k === 0 || (nFFT % 2 === 0 && k === numBins - 1)) ? (N * cg) : scale;
+        const lin = raw / Math.max(norm, 1e-12);
+        magLinear[k] = lin;
+        magDb[k] = 20.0 * Math.log10(Math.max(lin, 1e-6));
+    }
+
+    let peakIdx = 0, peakVal = -1.0, totalPower = 0.0;
+    for (let k = 0; k < numBins; k++) {
+        const p = magLinear[k] * magLinear[k];
+        totalPower += p;
+        if (magLinear[k] > peakVal) {
+            peakVal = magLinear[k];
+            peakIdx = k;
         }
     }
 
-    return magDB;
+    const halfLobe = (WINDOW_SPECS[windowType]?.mainLobeBins || 2) * zeroPadFactor;
+    let mainPower = 0.0;
+    for (let k = Math.max(0, peakIdx - halfLobe); k <= Math.min(numBins - 1, peakIdx + halfLobe); k++) {
+        mainPower += magLinear[k] * magLinear[k];
+    }
+
+    const leakedPowerRatio = totalPower > 0 ? Math.max(0, (1.0 - mainPower / totalPower) * 100.0) : 0.0;
+
+    return {
+        w,
+        y,
+        nFFT,
+        freqs,
+        magLinear,
+        magDb,
+        leakedPowerRatio,
+        spec: WINDOW_SPECS[windowType] || { name: windowType, psll: '--', mainLobeBins: 2 }
+    };
 }
 
 /**
- * Quantifies academic DSP window metrics:
- * 1. -3 dB Main-Lobe Width (in Hz and DFT bins)
- * 2. Null-to-Null Main-Lobe Width (in Hz and DFT bins)
- * 3. Peak Side-Lobe Level (PSL in dB relative to 0 dB main peak)
- * 4. Detected Fundamental Signal Peak (Hz, sub-bin parabolic interpolation)
- *
- * @param {string} wType - Window function name
- * @param {number} N - Window length in samples
- * @param {number} fs - Sampling frequency in Hz
- * @param {Float64Array} magDB - Magnitude spectrum of windowed signal (from computeMagnitudeSpectrumDB)
- * @param {number} [N_interp=8192] - Interpolated high-resolution FFT size for analytical precision
- * @returns {Object} Metric properties matching App.jsx keys
+ * Quantifies academic DSP window lobe metrics (Main-lobe width, null width, PSL, detected peak).
  */
 export function quantifyWindowMetrics(wType, N, fs, magDB, N_interp = 8192) {
-    // 1. High-Resolution Analysis of the Window Function w[n]
     const w = generateWindow(wType, N);
     const real = new Float64Array(N_interp);
     const imag = new Float64Array(N_interp);
     real.set(w);
 
-    cooleyTukeyFFT(real, imag);
+    fftRadix2(real, imag, false);
 
-    // For standard positive symmetric windows, the maximum DC gain is at k = 0
-    const maxWinMag = Math.sqrt(real[0] * real[0] + imag[0] * imag[0]);
+    const maxWinMag = Math.hypot(real[0], imag[0]);
     const halfInterp = N_interp >> 1;
     const winDB = new Float64Array(halfInterp);
 
     for (let k = 0; k < halfInterp; k++) {
-        const m = Math.sqrt(real[k] * real[k] + imag[k] * imag[k]);
+        const m = Math.hypot(real[k], imag[k]);
         winDB[k] = 20.0 * Math.log10(Math.max(m / maxWinMag, 1e-12));
     }
 
-    // A. Calculate -3 dB Main-Lobe Width (Two-Sided)
-    // Find bin where winDB crosses -3.0103 dB and apply linear interpolation
     let k3dB = 0.0;
     for (let k = 1; k < halfInterp; k++) {
         if (winDB[k] <= -3.0103) {
@@ -360,17 +353,12 @@ export function quantifyWindowMetrics(wType, N, fs, magDB, N_interp = 8192) {
     const width3dB_Hz = 2.0 * k3dB * (fs / N_interp);
     const width3dB_Bins = width3dB_Hz / (fs / N);
 
-    // B. Calculate Null-to-Null Main-Lobe Width (Two-Sided)
-    // Theoretical main-lobe half-width:
-    // Rectangular = 1 bin (null-to-null = 2 bins)
-    // Bartlett, Hann, Hamming = 2 bins (null-to-null = 4 bins)
-    // Blackman = 3 bins (null-to-null = 6 bins)
-    const expectedHalfBins = (wType === 'Rectangular') ? 1.0 : (wType === 'Blackman' ? 3.0 : 2.0);
+    const mainLobeBins = WINDOW_SPECS[wType]?.mainLobeBins || 2;
     const binsPerInterp = N_interp / N;
-    const searchStart = Math.max(1, Math.round(expectedHalfBins * binsPerInterp * 0.70));
-    const searchEnd = Math.min(halfInterp - 1, Math.round(expectedHalfBins * binsPerInterp * 1.35));
+    const searchStart = Math.max(1, Math.round(mainLobeBins * binsPerInterp * 0.70));
+    const searchEnd = Math.min(halfInterp - 1, Math.round(mainLobeBins * binsPerInterp * 1.45));
 
-    let kNull = Math.round(expectedHalfBins * binsPerInterp);
+    let kNull = Math.round(mainLobeBins * binsPerInterp);
     let minVal = 0.0;
     for (let k = searchStart; k <= searchEnd; k++) {
         if (winDB[k] < minVal) {
@@ -381,8 +369,6 @@ export function quantifyWindowMetrics(wType, N, fs, magDB, N_interp = 8192) {
     const nullWidth_Hz = 2.0 * kNull * (fs / N_interp);
     const nullWidth_Bins = nullWidth_Hz / (fs / N);
 
-    // C. Peak Side-Lobe Level (PSL in dB):
-    // Highest side lobe occurring beyond the main-lobe null boundary
     let maxSidelobe = -100.0;
     const sidelobeStart = kNull + 3;
     for (let k = sidelobeStart; k < halfInterp; k++) {
@@ -391,29 +377,27 @@ export function quantifyWindowMetrics(wType, N, fs, magDB, N_interp = 8192) {
         }
     }
 
-    // D. Detect Signal Peak Frequency with Sub-Bin Parabolic Interpolation
     let detectedFreqHz = 0.0;
     if (magDB && magDB.length > 0) {
-        const halfBins = magDB.length >> 1;
         let peakIdx = 0;
         let maxVal = -Infinity;
 
-        for (let k = 0; k < halfBins; k++) {
+        for (let k = 0; k < magDB.length; k++) {
             if (magDB[k] > maxVal) {
                 maxVal = magDB[k];
                 peakIdx = k;
             }
         }
 
-        if (peakIdx > 0 && peakIdx < halfBins - 1) {
+        if (peakIdx > 0 && peakIdx < magDB.length - 1) {
             const alpha = magDB[peakIdx - 1];
             const beta = magDB[peakIdx];
             const gamma = magDB[peakIdx + 1];
             const denom = alpha - 2.0 * beta + gamma;
             const delta = Math.abs(denom) > 1e-9 ? 0.5 * (alpha - gamma) / denom : 0.0;
-            detectedFreqHz = (peakIdx + delta) * (fs / magDB.length);
+            detectedFreqHz = (peakIdx + delta) * (fs / (magDB.length * 2));
         } else {
-            detectedFreqHz = peakIdx * (fs / magDB.length);
+            detectedFreqHz = peakIdx * (fs / (magDB.length * 2));
         }
     }
 

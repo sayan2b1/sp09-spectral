@@ -29,35 +29,44 @@ export default function TopBar({
                     title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
                     aria-label="Toggle theme"
                 >
-                    {theme === 'dark' ? '☀️ Light' : '🌙 Dark'}
+                    {theme === 'dark' ? '☀️ Light Mode' : '🌙 Dark Mode'}
                 </button>
 
-                <span className="app-badge">SP09</span>
-                <span className="brand-text">DSP Workbench</span>
+                <span className="app-badge">SPEC-01</span>
+                <span className="brand-text">Spectral Leakage Analyzer</span>
             </div>
 
             <div className="toolbar-actions">
+                <span className="strip-label">SETUPS:</span>
                 <button
                     className="btn"
                     onClick={() => applyPreset('coherent')}
-                    title="Load Coherent Sampling Preset (10.0 Bins)"
+                    title="Coherent Lock: Exact integer cycles (k = 10.000) -> 0.00% Leakage"
                 >
-                    P1: Coherent
+                    Coherent Lock
                 </button>
                 <button
                     className="btn"
                     onClick={() => applyPreset('leakage')}
-                    title="Load Maximum Leakage Preset (10.5 Bins)"
+                    title="Half-Bin Leakage: Non-integer cycles (k = 10.500) -> Maximum Leakage"
                 >
-                    P2: Leakage
+                    Half-Bin Leakage
                 </button>
                 <button
                     className="btn"
                     onClick={() => applyPreset('twotone')}
-                    title="Load 2-Tone Masking Preset"
+                    title="Two-Tone Masking: Strong tone (0 dB) + Weak tone (-32 dB @ +18 Hz)"
                 >
-                    P3: 2-Tone
+                    Two-Tone Masking
                 </button>
+                <button
+                    className="btn"
+                    onClick={() => applyPreset('zeropad')}
+                    title="8x Zero-Pad: Continuous DTFT lobe interpolation and side lobes"
+                >
+                    8x Zero-Pad
+                </button>
+
                 <button
                     className={`btn ${isMicActive ? 'btn-danger' : ''}`}
                     onClick={toggleMicrophone}
@@ -70,7 +79,7 @@ export default function TopBar({
                     onClick={exportMetricsCSV}
                     title="Export Quantified Metrics to CSV"
                 >
-                    ⬇ CSV
+                    ⬇ Export CSV
                 </button>
             </div>
         </header>

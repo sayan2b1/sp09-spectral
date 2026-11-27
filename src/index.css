@@ -19,8 +19,11 @@
     --table-th-bg: #111827;
     --table-stripe: rgba(31, 41, 55, 0.4);
     --statusbar-bg: #0b1120;
+    --telemetry-bg: #0c121e;
     --scrollbar-thumb: #374151;
     --scrollbar-track: #111827;
+    --ok: #10b981;
+    --warn: #f43f5e;
 }
 
 [data-theme="light"] {
@@ -39,8 +42,11 @@
     --table-th-bg: #e2e8f0;
     --table-stripe: #f8fafc;
     --statusbar-bg: #e2e8f0;
+    --telemetry-bg: #f8fafc;
     --scrollbar-thumb: #cbd5e1;
     --scrollbar-track: #f1f5f9;
+    --ok: #059669;
+    --warn: #dc2626;
 }
 
 /* =========================================================================
@@ -56,7 +62,7 @@ html, body {
     width: 100%;
     min-height: 100%;
     height: 100vh;
-    height: 100dvh; /* Dynamic viewport height for mobile browsers */
+    height: 100dvh;
     overflow-x: auto;
     overflow-y: hidden;
     font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -67,7 +73,7 @@ html, body {
     transition: background-color 0.2s ease, color 0.2s ease;
 }
 
-/* Custom Scrollbar for all scrollable containers */
+/* Custom Scrollbars */
 ::-webkit-scrollbar {
     width: 6px;
     height: 6px;
@@ -98,7 +104,7 @@ html, body {
 }
 
 /* =========================================================================
-   TOP APP BAR (Responsive & Mobile Desktop Mode Friendly)
+   TOP APP BAR
    ========================================================================= */
 .topbar {
     background: var(--bg-panel);
@@ -107,7 +113,7 @@ html, body {
     align-items: center;
     justify-content: space-between;
     padding: 0 12px;
-    min-height: 52px;
+    min-height: 50px;
     gap: 12px;
     flex-shrink: 0;
     z-index: 30;
@@ -138,9 +144,19 @@ html, body {
     font-size: 0.72rem;
     font-weight: 700;
     letter-spacing: 0.5px;
+    font-family: monospace;
 }
 
-/* Horizontally scrollable actions for mobile & small screens */
+.strip-label {
+    font-family: monospace;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    letter-spacing: 0.08em;
+    margin-right: 2px;
+}
+
+/* Horizontally scrollable actions for presets & toolbar */
 .toolbar-actions {
     display: flex;
     gap: 8px;
@@ -153,14 +169,70 @@ html, body {
 }
 
 /* =========================================================================
+   TELEMETRY STRIP (Swiss Lab-Bench Metrology Strip)
+   ========================================================================= */
+.telemetry-bar {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    background: var(--telemetry-bg);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+    z-index: 25;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.readout {
+    padding: 8px 14px;
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.readout:last-child {
+    border-right: none;
+}
+
+.readout-key {
+    font-family: monospace;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    color: var(--text-muted);
+}
+
+.readout-val {
+    font-family: monospace;
+    font-size: 0.96rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: var(--text-main);
+}
+
+.readout-status {
+    font-family: monospace;
+    font-size: 0.80rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+}
+
+.readout-status.is-coherent {
+    color: var(--ok);
+}
+
+.readout-status.is-leakage {
+    color: var(--warn);
+}
+
+/* =========================================================================
    BUTTONS & CONTROLS
    ========================================================================= */
 .btn {
     background: var(--bg-card);
     color: var(--text-main);
     border: 1px solid var(--border);
-    padding: 6px 12px;
-    border-radius: 6px;
+    padding: 5px 11px;
+    border-radius: 5px;
     font-size: 0.78rem;
     font-weight: 600;
     cursor: pointer;
@@ -170,7 +242,7 @@ html, body {
     gap: 6px;
     white-space: nowrap;
     user-select: none;
-    min-height: 34px;
+    min-height: 32px;
 }
 
 .btn:hover {
@@ -208,9 +280,7 @@ html, body {
     color: var(--accent);
     border: 1.5px solid var(--accent);
     font-weight: 700;
-    box-shadow: 0 0 6px var(--accent-soft);
 }
-
 .btn-theme-toggle:hover {
     background: var(--accent);
     color: #ffffff;
@@ -232,14 +302,13 @@ html, body {
 .workspace {
     display: flex;
     flex: 1;
-    height: calc(100% - 52px - 28px);
     min-height: 0;
     overflow: hidden;
     position: relative;
     transition: all 0.2s ease;
 }
 
-/* Left Instrument Control Rack */
+/* Left Instrument Control Rail */
 .sidebar {
     width: 320px;
     min-width: 320px;
@@ -283,30 +352,79 @@ html, body {
 }
 
 .panel-title {
-    font-size: 0.75rem;
+    font-size: 0.74rem;
     text-transform: uppercase;
     letter-spacing: 0.8px;
     color: var(--text-muted);
     font-weight: 700;
     margin-bottom: 10px;
+    font-family: monospace;
 }
 
 /* Control Elements */
 .control-group {
     margin-bottom: 12px;
 }
-
 .control-group:last-child {
     margin-bottom: 0;
+}
+
+.field-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 4px;
+}
+
+.field-head label {
+    font-size: 0.80rem;
+    font-weight: 600;
+    color: var(--text-main);
+}
+
+.unit-tag {
+    font-family: monospace;
+    font-size: 0.72rem;
+    color: var(--text-muted);
+}
+
+.input-pair {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.input-pair input[type="range"] {
+    flex: 1;
+    height: 6px;
+    background: var(--border);
+    border-radius: 3px;
+    outline: none;
+    -webkit-appearance: none;
+    cursor: pointer;
+}
+
+.input-pair input[type="number"] {
+    width: 74px;
+    font-family: monospace;
+    font-size: 0.82rem;
+    font-weight: 600;
+    padding: 5px 8px;
+    background: var(--input-bg);
+    color: var(--text-main);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    text-align: right;
+    outline: none;
 }
 
 .control-group label {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    font-size: 0.8rem;
+    font-size: 0.80rem;
     color: var(--text-muted);
-    margin-bottom: 5px;
+    margin-bottom: 4px;
 }
 
 .control-group label strong {
@@ -316,36 +434,26 @@ html, body {
 .control-group select,
 .control-group input[type="file"] {
     width: 100%;
-    padding: 8px 10px;
+    padding: 7px 9px;
     background: var(--input-bg);
     color: var(--text-main);
     border: 1px solid var(--border);
-    border-radius: 6px;
-    font-size: 0.85rem;
+    border-radius: 5px;
+    font-size: 0.82rem;
     outline: none;
     transition: border-color 0.15s ease;
 }
 
-.control-group select:focus {
+.control-group select:focus,
+.input-pair input[type="number"]:focus {
     border-color: var(--accent);
 }
 
 /* Touch-Friendly Range Sliders */
-.control-group input[type="range"] {
-    width: 100%;
-    height: 6px;
-    background: var(--border);
-    border-radius: 3px;
-    outline: none;
-    margin: 8px 0;
+input[type="range"]::-webkit-slider-thumb {
     -webkit-appearance: none;
-    cursor: pointer;
-}
-
-.control-group input[type="range"]::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    width: 20px;
-    height: 20px;
+    width: 18px;
+    height: 18px;
     border-radius: 50%;
     background: var(--accent);
     border: 2px solid #ffffff;
@@ -354,13 +462,13 @@ html, body {
     transition: transform 0.1s ease;
 }
 
-.control-group input[type="range"]::-webkit-slider-thumb:active {
+input[type="range"]::-webkit-slider-thumb:active {
     transform: scale(1.2);
 }
 
-.control-group input[type="range"]::-moz-range-thumb {
-    width: 20px;
-    height: 20px;
+input[type="range"]::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
     border-radius: 50%;
     background: var(--accent);
     border: 2px solid #ffffff;
@@ -371,28 +479,28 @@ html, body {
 .checkbox-list {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 7px;
 }
 
 .checkbox-item {
     display: flex;
     align-items: center;
     gap: 8px;
-    font-size: 0.84rem;
+    font-size: 0.82rem;
     cursor: pointer;
     user-select: none;
 }
 
 .checkbox-item input[type="checkbox"] {
-    width: 16px;
-    height: 16px;
+    width: 15px;
+    height: 15px;
     accent-color: var(--accent);
     cursor: pointer;
 }
 
 .color-dot {
-    width: 11px;
-    height: 11px;
+    width: 10px;
+    height: 10px;
     border-radius: 50%;
     flex-shrink: 0;
 }
@@ -429,8 +537,8 @@ html, body {
     color: var(--text-muted);
     border: none;
     border-bottom: 2px solid transparent;
-    padding: 10px 14px;
-    font-size: 0.84rem;
+    padding: 9px 14px;
+    font-size: 0.82rem;
     font-weight: 600;
     cursor: pointer;
     white-space: nowrap;
@@ -450,28 +558,25 @@ html, body {
 
 .viewport-content {
     flex: 1;
-    padding: 14px;
+    padding: 12px;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 14px;
     min-width: 0;
     min-height: 0;
 }
 
-/* Fixed ideal height for charts: ensures wide, proportional oscilloscope view */
+/* Proportional Chart Cards */
 .chart-card {
     background: var(--bg-panel);
     border: 1px solid var(--border);
     border-radius: 8px;
-    padding: 14px;
+    padding: 12px 14px;
     display: flex;
     flex-direction: column;
-    min-height: 280px;
-    height: 350px;
-    max-height: 420px;
-    min-width: 0;
+    min-height: 240px;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
     transition: background-color 0.2s ease, border-color 0.2s ease;
     flex-shrink: 0;
@@ -481,16 +586,24 @@ html, body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 8px;
-    font-size: 0.88rem;
+    margin-bottom: 6px;
+    font-size: 0.86rem;
     font-weight: 600;
     gap: 8px;
     flex-wrap: wrap;
 }
 
+.bay-id {
+    font-family: monospace;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--accent);
+    letter-spacing: 0.06em;
+}
+
 .chart-meta {
     color: var(--text-muted);
-    font-size: 0.78rem;
+    font-size: 0.74rem;
     font-weight: 500;
 }
 
@@ -506,13 +619,13 @@ html, body {
 .metrics-table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 0.84rem;
+    font-size: 0.82rem;
     white-space: nowrap;
 }
 
 .metrics-table th,
 .metrics-table td {
-    padding: 10px 12px;
+    padding: 9px 12px;
     text-align: left;
     border-bottom: 1px solid var(--border);
 }
@@ -521,9 +634,10 @@ html, body {
     color: var(--text-muted);
     background: var(--table-th-bg);
     font-weight: 700;
-    font-size: 0.78rem;
+    font-size: 0.76rem;
     text-transform: uppercase;
     letter-spacing: 0.5px;
+    font-family: monospace;
 }
 
 .metrics-table tbody tr:hover {
@@ -533,8 +647,9 @@ html, body {
 .badge {
     padding: 3px 8px;
     border-radius: 4px;
-    font-weight: 600;
-    font-size: 0.76rem;
+    font-weight: 700;
+    font-size: 0.74rem;
+    font-family: monospace;
     display: inline-block;
 }
 
@@ -563,21 +678,24 @@ html, body {
 
 /* =========================================================================
    MOBILE & DESKTOP-MODE RESPONSIVE BREAKPOINTS
-   (Handles both Mobile View & Mobile Browser in Desktop Mode)
    ========================================================================= */
-
-/* Backdrop overlay when sidebar is opened on mobile viewports */
 .sidebar-backdrop {
     display: none;
 }
 
-/* When viewed on screens <= 1024px or in Portrait mode (like mobile browsers in desktop mode) */
 @media (max-width: 1024px), (orientation: portrait) {
     .brand-text {
         font-size: 0.82rem;
     }
 
-    /* Transform sidebar into an off-canvas slide-out drawer so chart gets 100% width! */
+    .telemetry-bar {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    .readout {
+        border-bottom: 1px solid var(--border);
+    }
+
+    /* Transform sidebar into an off-canvas slide-out drawer */
     .sidebar {
         position: absolute;
         top: 0;
@@ -604,12 +722,6 @@ html, body {
         background: rgba(0, 0, 0, 0.55);
         backdrop-filter: blur(2px);
         z-index: 40;
-    }
-
-    /* Ensure chart maintains proportional height in portrait desktop mode */
-    .chart-card {
-        height: 320px;
-        min-height: 260px;
     }
 
     .statusbar {
