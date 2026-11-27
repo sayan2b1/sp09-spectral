@@ -1,7 +1,10 @@
+// src/components/InstrumentRack.jsx
 import React from 'react';
 import { WINDOW_TYPES, WINDOW_COLORS } from '../dspEngine';
 
 export default function InstrumentRack({
+    isSidebarOpen,
+    toggleSidebar,
     signalType,
     setSignalType,
     customFileName,
@@ -22,7 +25,12 @@ export default function InstrumentRack({
     setActiveTimeWindow
 }) {
     return (
-        <aside className="sidebar">
+        <aside className={`sidebar ${isSidebarOpen ? 'open' : 'closed'}`}>
+            <div className="sidebar-header-mobile">
+                <span>⚙️ Parameter Controls</span>
+                <button className="btn" onClick={toggleSidebar} aria-label="Close Sidebar">✕ Close</button>
+            </div>
+
             <div className="panel-box">
                 <div className="panel-title">Signal Generator</div>
                 <div className="control-group">
@@ -38,8 +46,8 @@ export default function InstrumentRack({
 
                 <div className="control-group">
                     <label>
-                        <span>Load Audio/Data (.wav, .csv)</span>
-                        {customFileName && <span style={{ color: '#3b82f6' }}>{customFileName}</span>}
+                        <span>Load Audio / CSV</span>
+                        {customFileName && <span style={{ color: 'var(--accent)', maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{customFileName}</span>}
                     </label>
                     <input type="file" accept=".wav,.mp3,.csv,.txt" onChange={handleFileUpload} />
                 </div>
@@ -128,7 +136,7 @@ export default function InstrumentRack({
                 </div>
 
                 <div className="control-group" style={{ marginTop: 12 }}>
-                    <label>Time-Domain Envelope</label>
+                    <label>Time-Domain Window Envelope</label>
                     <select value={activeTimeWindow} onChange={(e) => setActiveTimeWindow(e.target.value)}>
                         {WINDOW_TYPES.map((wType) => (
                             <option key={wType} value={wType}>{wType}</option>

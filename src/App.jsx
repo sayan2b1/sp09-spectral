@@ -14,6 +14,21 @@ import MetricsTable from './components/MetricsTable';
 import StatusBar from './components/StatusBar';
 
 export default function App() {
+    // Theme state (Dark default, persists in localStorage)
+    const [theme, setTheme] = useState(() => {
+        const saved = localStorage.getItem('sp09_theme');
+        if (saved === 'light' || saved === 'dark') return saved;
+        return window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    });
+
+    // Sidebar drawer state (open by default, toggleable on mobile/desktop mode)
+    const [isSidebarOpen, setIsSidebarOpen] = useState(() => {
+        if (typeof window !== 'undefined') {
+            return window.innerWidth > 860;
+        }
+        return true;
+    });
+
     const [activeTab, setActiveTab] = useState('workbench'); // 'workbench' | 'spectrum' | 'metrics'
     const [signalType, setSignalType] = useState('sine');
     const [fs, setFs] = useState(1000);
@@ -29,6 +44,24 @@ export default function App() {
 
     const micIntervalRef = useRef(null);
     const audioCtxRef = useRef(null);
+
+    // Sync theme to root DOM attribute and meta theme-color
+    useEffect(() => {
+        document.documentElement.setAttribute('data-theme', theme);
+        localStorage.setItem('sp09_theme', theme);
+        const metaTheme = document.querySelector('meta[name="theme-color"]');
+        if (metaTheme) {
+            metaTheme.setAttribute('content', theme === 'light' ? '#f1f5f9' : '#090d16');
+        }
+    }, [theme]);
+
+    const toggleTheme = () => {
+        setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
+    };
+
+    const toggleSidebar = () => {
+        setIsSidebarOpen((prev) => !prev);
+    };
 
     const toggleWindow = (wType) => {
         setSelectedWindows((prev) =>
@@ -64,7 +97,7 @@ export default function App() {
                 setCustomSamples(Array.from(buffer));
             }, 80);
         } catch (err) {
-            alert('Microphone permission denied or unavailable.');
+            alert('Microphone permission denied or unavailable on this device/browser.');
         }
     };
 
@@ -120,16 +153,16 @@ export default function App() {
 
     const { timeData, spectrumData, metricsList } = useMemo(() => {
         const N_fft = 2048;
-        const rawSignal = generateSignal({ signalType, N, fs, f1, f2, amp2, customSamples });
-        const timeWin = generateWindow(activeTimeWindow, N);
+        const rawSignal = generateSignal(signalType, N, fs, f1, f2, amp2, customSamples);
 
+        const activeW = generateWindow(activeTimeWindow, N);
         const tData = [];
         for (let n = 0; n < N; n++) {
             tData.push({
                 sample: n,
-                raw: Number(rawSignal[n].toFixed(4)),
-                window: Number(timeWin[n].toFixed(4)),
-                windowed: Number((rawSignal[n] * timeWin[n]).toFixed(4))
+                raw: Number(rawSignal[n].toFixed(3)),
+                window: Number(activeW[n].toFixed(3)),
+                windowed: Number((rawSignal[n] * activeW[n]).toFixed(3))
             });
         }
 
@@ -183,10 +216,21 @@ export default function App() {
                 isMicActive={isMicActive}
                 toggleMicrophone={toggleMicrophone}
                 exportMetricsCSV={exportMetricsCSV}
+                theme={theme}
+                toggleTheme={toggleTheme}
+                isSidebarOpen={isSidebarOpen}
+                toggleSidebar={toggleSidebar}
             />
 
             <div className="workspace">
+                {/* Mobile backdrop to dismiss drawer */}
+                {isSidebarOpen && (
+                    <div className="sidebar-backdrop" onClick={() => setIsSidebarOpen(false)} />
+                )}
+
                 <InstrumentRack
+                    isSidebarOpen={isSidebarOpen}
+                    toggleSidebar={toggleSidebar}
                     signalType={signalType}
                     setSignalType={setSignalType}
                     customFileName={customFileName}
@@ -213,19 +257,19 @@ export default function App() {
                             className={`tab-btn ${activeTab === 'workbench' ? 'active' : ''}`}
                             onClick={() => setActiveTab('workbench')}
                         >
-                            📊 Split Workbench (Plots + Metrics)
+                            📊 Split Workbench
                         </button>
                         <button
                             className={`tab-btn ${activeTab === 'spectrum' ? 'active' : ''}`}
                             onClick={() => setActiveTab('spectrum')}
                         >
-                            🔍 Full-Screen Spectrum & Time Domain
+                            🔍 Spectrum & Time Waveform
                         </button>
                         <button
                             className={`tab-btn ${activeTab === 'metrics' ? 'active' : ''}`}
                             onClick={() => setActiveTab('metrics')}
                         >
-                            📋 Lobe Quantification & Viva Reference
+                            📋 Lobe Metrics Reference
                         </button>
                     </div>
 
@@ -236,11 +280,13 @@ export default function App() {
                                     spectrumData={spectrumData}
                                     selectedWindows={selectedWindows}
                                     fs={fs}
+                                    theme={theme}
                                 />
                                 {activeTab === 'spectrum' && (
                                     <TimeDomainChart
                                         timeData={timeData}
                                         activeTimeWindow={activeTimeWindow}
+                                        theme={theme}
                                     />
                                 )}
                             </>
@@ -252,6 +298,7 @@ export default function App() {
                                 N={N}
                                 binSpacing={binSpacing}
                                 activeTab={activeTab}
+                                theme={theme}
                             />
                         )}
                     </div>
