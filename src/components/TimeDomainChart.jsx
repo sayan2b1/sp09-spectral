@@ -33,9 +33,12 @@ export default function TimeDomainChart({ timeData, primaryWindow, theme }) {
                         <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
                         <XAxis
                             dataKey="time"
+                            type="number"
+                            domain={[0, 'dataMax']}
+                            tickCount={7}
+                            tickFormatter={(val) => `${Number(val).toFixed(3)}s`}
                             stroke={axisColor}
                             fontSize={11}
-                            unit="s"
                         />
                         <YAxis
                             domain={[-1.2, 1.2]}
@@ -44,7 +47,11 @@ export default function TimeDomainChart({ timeData, primaryWindow, theme }) {
                             fontSize={11}
                             label={{ value: 'Amplitude', angle: -90, position: 'insideLeft', offset: 12, style: { fill: axisColor, fontSize: 11 } }}
                         />
-                        <Tooltip contentStyle={tooltipContentStyle} formatter={(val) => [val, '']} />
+                        <Tooltip
+                            contentStyle={tooltipContentStyle}
+                            labelFormatter={(label) => `Time: t = ${Number(label).toFixed(3)} s`}
+                            formatter={(val, name) => [Number(val).toFixed(3), name]}
+                        />
                         <Legend verticalAlign="top" height={28} />
 
                         <Line
@@ -60,7 +67,7 @@ export default function TimeDomainChart({ timeData, primaryWindow, theme }) {
                         <Line
                             type="monotone"
                             dataKey="envelope"
-                            name={`${primaryWindow} Envelope`}
+                            name="Window Envelope"
                             stroke={envColor}
                             strokeWidth={1.4}
                             strokeDasharray="4 4"
@@ -70,7 +77,7 @@ export default function TimeDomainChart({ timeData, primaryWindow, theme }) {
                         <Line
                             type="monotone"
                             dataKey="windowed"
-                            name={`CH1 Windowed`}
+                            name="Windowed Signal"
                             stroke={windowedColor}
                             strokeWidth={2.0}
                             dot={false}

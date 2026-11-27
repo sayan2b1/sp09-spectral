@@ -60,7 +60,14 @@ export default function SpectrumChart({
                             fontSize={11}
                             label={{ value: yLabel, angle: -90, position: 'insideLeft', offset: 12, style: { fill: axisColor, fontSize: 11 } }}
                         />
-                        <Tooltip contentStyle={tooltipContentStyle} formatter={(val) => [isDb ? `${val} dB` : val, 'Magnitude']} />
+                        <Tooltip
+                            contentStyle={tooltipContentStyle}
+                            labelFormatter={(label) => `${Number(label).toFixed(1)} Hz`}
+                            formatter={(val, name) => {
+                                const formattedVal = isDb ? `${Number(val).toFixed(1)} dB` : Number(val).toFixed(3);
+                                return [formattedVal, name];
+                            }}
+                        />
                         <Legend verticalAlign="top" height={28} />
 
                         {overlayMode === 'ch1_ch2' ? (

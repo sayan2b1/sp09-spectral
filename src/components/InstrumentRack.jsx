@@ -44,7 +44,7 @@ export default function InstrumentRack({
                     <label>Waveform Type</label>
                     <select value={signalType} onChange={(e) => setSignalType(e.target.value)}>
                         <option value="sine">Single Tone — sin(2πf₀t)</option>
-                        <option value="two_tone">Two-Tone Masking (0 dB + -32 dB @ +18 Hz)</option>
+                        <option value="two_tone">Two-Tone Masking (0 dB @ f₀ + -32 dB @ 250 Hz)</option>
                         <option value="square">Square Wave (Odd Harmonics)</option>
                         <option value="multi_tone">3-Tone Composite (f₀, 1.5f₀, 2.2f₀)</option>
                         <option value="chirp">Linear FM Chirp</option>

@@ -18,18 +18,18 @@ export default function MetricsTable({ metricsList, N, binSpacing, theme }) {
                 <table className="metrics-table">
                     <thead>
                         <tr>
-                            <th>Window Function</th>
-                            <th>Theor. PSLL</th>
-                            <th>-3 dB Width</th>
-                            <th>Null-to-Null Width</th>
-                            <th style={{ textAlign: 'center' }}>Measured PSL</th>
-                            <th style={{ textAlign: 'center' }}>
+                            <th title="Discrete window function w[n] applied across the finite observation duration N.">Window Function</th>
+                            <th title="Theoretical Peak Side-Lobe Level: maximum asymptotic height of the first sidelobe relative to the 0 dB carrier peak.">Theor. PSLL</th>
+                            <th title="-3 dB Main-Lobe Width: half-power bandwidth quantifying the fundamental frequency resolving power of the window.">-3 dB Width</th>
+                            <th title="Null-to-Null Width: total frequency distance between the first zero-crossings flanking the main lobe.">Null-to-Null Width</th>
+                            <th style={{ textAlign: 'center' }} title="Measured Peak Side-Lobe Level: actual highest secondary peak detected relative to the normalized carrier in dB.">Measured PSL</th>
+                            <th style={{ textAlign: 'center' }} title="Leaked Power Ratio: analytical percentage of total spectral energy spilled outside the window's main-lobe bandwidth.">
                                 Leaked Power (%)
                                 <span style={{ display: 'block', fontSize: '0.67rem', fontWeight: 400, opacity: 0.75, textTransform: 'none', letterSpacing: 0 }}>
                                     (Benchmark)
                                 </span>
                             </th>
-                            <th style={{ textAlign: 'right' }}>Detected Peak</th>
+                            <th style={{ textAlign: 'right' }} title="Detected Peak: fundamental carrier frequency identified via sub-bin parabolic / crest interpolation.">Detected Peak</th>
                         </tr>
                     </thead>
                     <tbody>

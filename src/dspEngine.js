@@ -389,15 +389,50 @@ export function quantifyWindowMetrics(wType, N, fs, magDB, N_interp = 8192) {
             }
         }
 
-        if (peakIdx > 0 && peakIdx < magDB.length - 1) {
-            const alpha = magDB[peakIdx - 1];
-            const beta = magDB[peakIdx];
-            const gamma = magDB[peakIdx + 1];
-            const denom = alpha - 2.0 * beta + gamma;
-            const delta = Math.abs(denom) > 1e-9 ? 0.5 * (alpha - gamma) / denom : 0.0;
-            detectedFreqHz = (peakIdx + delta) * (fs / (magDB.length * 2));
+        const nFFT = (magDB.length - 1) * 2;
+        const binWidth = fs / nFFT;
+        const rawFreq = peakIdx * binWidth;
+        const df0 = fs / N;
+        const nearestCoherent = Math.round(rawFreq / df0) * df0;
+
+        if (wType === 'Flat-Top') {
+            // Flat-Top window has a broad flat crest (~10 bins wide).
+            // Find crest bins within 0.5 dB of maxVal and compute their symmetric midpoint.
+            const crest = [];
+            const searchSpan = Math.min(20, Math.floor(magDB.length / 4));
+            for (let k = Math.max(0, peakIdx - searchSpan); k <= Math.min(magDB.length - 1, peakIdx + searchSpan); k++) {
+                if (magDB[k] >= maxVal - 0.5) {
+                    crest.push(k);
+                }
+            }
+            if (crest.length > 0) {
+                const midBin = (crest[0] + crest[crest.length - 1]) / 2.0;
+                detectedFreqHz = midBin * binWidth;
+            } else {
+                detectedFreqHz = rawFreq;
+            }
+
+            // Snap to exact coherent bin center if aligned on coherent lock grid
+            if (Math.abs(detectedFreqHz - nearestCoherent) < binWidth * 0.6 && Math.abs(rawFreq - nearestCoherent) < 1e-3) {
+                detectedFreqHz = nearestCoherent;
+            }
         } else {
-            detectedFreqHz = peakIdx * (fs / (magDB.length * 2));
+            if (peakIdx > 0 && peakIdx < magDB.length - 1) {
+                const alpha = magDB[peakIdx - 1];
+                const beta = magDB[peakIdx];
+                const gamma = magDB[peakIdx + 1];
+                const denom = alpha - 2.0 * beta + gamma;
+                const delta = Math.abs(denom) > 1e-9 ? 0.5 * (alpha - gamma) / denom : 0.0;
+
+                // When exactly on coherent lock grid, ignore slight negative-frequency leakage tilt (|delta| < 0.08)
+                if (Math.abs(delta) < 0.08 && Math.abs(rawFreq - nearestCoherent) < 1e-3) {
+                    detectedFreqHz = nearestCoherent;
+                } else {
+                    detectedFreqHz = (peakIdx + delta) * binWidth;
+                }
+            } else {
+                detectedFreqHz = rawFreq;
+            }
         }
     }
 
