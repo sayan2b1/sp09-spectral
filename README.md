@@ -108,12 +108,14 @@ This convolution of length $L \ge 2N - 1$ is computed via power-of-2 Radix-2 FFT
 
 ## ⚡ Key Application Features
 
-### 1. Dual-Trace Split Workbench
-- **Trace A // Time Domain**: Displays the raw input signal $x[n]$, the window envelope $w[n]$ (dashed contour), and the resulting windowed sequence $x_w[n]$.
-- **Trace B // Frequency Domain**: Displays the coherent-gain-normalized magnitude spectrum with interactive crosshair tooltips.
+### 1. Unified Single-Page Workbench
+All analytical visualizers are integrated into a single cohesive layout without redundant view tabs:
+- **Trace A // Time Domain**: Displays the raw input signal $x[n]$, the window envelope $w[n]$ (dashed contour), and the resulting windowed sequence $x_w[n]$ with clean numerical time ticks (`t = 0.033s`, `t = 0.067s`) and explicit series tooltips (`Raw Input`, `Window Envelope`, `Windowed Signal`).
+- **Trace B // Frequency Domain**: Displays the coherent-gain-normalized magnitude spectrum with frequency units (e.g. `230.0 Hz`), exact active window labels, and high-contrast dual overlay (bright amber `#fbbf24` dashed CH2 curve in Dark Mode).
+- **Benchmark Reference Table**: Real-time quantified window metrics & leakage benchmark compact enough to fit standard screens without horizontal scrolling, featuring interactive Viva Voce hover definitions.
 
 ### 2. Live Telemetry Readout Strip
-Real-time header cells updating synchronously at 60 FPS:
+Real-time header cells updating synchronously at 60 FPS, with interactive plain-English hover definitions:
 - **`SAMPLES / FFT`**: Observation length $N$ vs. Zero-padded FFT length $M$ (e.g., $210 / 210$ or $150 / 1200$).
 - **`CYCLES (k = f0·T)`**: Exact number of cycles captured in the window frame.
 - **`BIN ALIGNMENT`**: Live status badge:
@@ -123,16 +125,19 @@ Real-time header cells updating synchronously at 60 FPS:
 - **`LEAKED POWER`**: Integrated fractional energy residing outside the main lobe:
   $$\text{Leaked Power (\%)} = \left( 1 - \frac{\sum_{\text{main-lobe}} |X[k]|^2}{\sum_{\text{total}} |X[k]|^2} \right) \times 100\%$$
 
-### 3. Benchmark Quantification Table
-Includes automated sub-bin peak estimation via 3-point parabolic interpolation:
+### 3. Benchmark Quantification Table & Calibrated Peak Detection
+Includes sub-bin peak estimation via parabolic interpolation and symmetric Flat-Top crest midpoint detection:
 
 $$\delta = \frac{1}{2} \cdot \frac{|X_{k-1}| - |X_{k+1}|}{|X_{k-1}| - 2|X_k| + |X_{k+1}|}, \quad f_{\text{peak}} = (k + \delta) \cdot \frac{f_s}{M}$$
 
+- **Calibrated Coherent Lock**: Under coherent sampling ($50.00\text{ Hz}$, $N=200$, $f_s=1000\text{ Hz}$), all 6 windows (including Rectangular and Flat-Top) report exact **`50.00 Hz`** ($\pm 0.00\text{ Hz}$ error).
+- **Viva Voce Tooltips**: Hovering over any table header (`-3 dB Width`, `Null-to-Null Width`, `Measured PSL`, `Leaked Power (%)`) reveals concise 1-sentence explanations.
+
 ### 4. One-Click Reference Setups
 Integrated preset bar with persistent active state and pulsing visual indicator:
-1. **Coherent Lock**: $f_0 = 50\text{ Hz}, T = 0.20\text{ s}, N = 200, k = 10.000$ (clean impulse, 0% leakage).
+1. **Coherent Lock**: $f_0 = 50\text{ Hz}, T = 0.20\text{ s}, N = 200, k = 10.000$ (clean impulse, 0% leakage, exact 50.00 Hz peak).
 2. **Half-Bin Leakage**: $f_0 = 50\text{ Hz}, T = 0.21\text{ s}, N = 210, k = 10.500$ (worst-case Rectangular leakage).
-3. **Two-Tone Masking**: $f_0 = 50\text{ Hz}$ ($0\text{ dB}$) tone + $68\text{ Hz}$ ($-32\text{ dB}$) weak tone (demonstrates how Rectangular side-lobes mask weak signals while Blackman resolves them).
+3. **Two-Tone Masking**: $f_0 = 50\text{ Hz}$ ($0\text{ dB}$) carrier tone + $250\text{ Hz}$ ($-32\text{ dB}$) secondary tone (demonstrates how Rectangular side-lobes mask weak signals while Blackman resolves them).
 4. **8x Zero-Pad**: $f_0 = 50\text{ Hz}, T = 0.15\text{ s}, N = 150, 8\times$ zero-padding (smooth DTFT interpolation).
 
 ### 5. Mobile Desktop-Mode & Theme Support
