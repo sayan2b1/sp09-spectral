@@ -2,11 +2,11 @@
 import React from 'react';
 import { WINDOW_SPECS, WINDOW_COLORS } from '../dspEngine';
 
-export default function MetricsTable({ metricsList, N, binSpacing, activeTab, theme }) {
+export default function MetricsTable({ metricsList, N, binSpacing, theme }) {
     const isLight = theme === 'light';
 
     return (
-        <div className="chart-card" style={{ flex: activeTab === 'metrics' ? 1 : 'unset', height: 'auto', minHeight: 'auto' }}>
+        <div className="chart-card" style={{ height: 'auto', minHeight: 'auto' }}>
             <div className="chart-header">
                 <div>
                     <span className="bay-id">BENCHMARK // </span>

@@ -36,7 +36,6 @@ export default function App() {
         return true;
     });
 
-    const [activeTab, setActiveTab] = useState('workbench'); // 'workbench' | 'spectrum' | 'metrics'
     const [activePreset, setActivePreset] = useState('leakage'); // 'coherent' | 'leakage' | 'twotone' | 'zeropad' | null
 
     // DSP Parameters (matching & extending Ahmad's SPEC-01)
@@ -369,60 +368,33 @@ export default function App() {
                 />
 
                 <main className="viewport">
-                    <div className="tab-bar">
-                        <button
-                            className={`tab-btn ${activeTab === 'workbench' ? 'active' : ''}`}
-                            onClick={() => setActiveTab('workbench')}
-                        >
-                            📊 Dual-Trace Split Workbench
-                        </button>
-                        <button
-                            className={`tab-btn ${activeTab === 'spectrum' ? 'active' : ''}`}
-                            onClick={() => setActiveTab('spectrum')}
-                        >
-                            🔍 High-Res Spectrum (Trace B)
-                        </button>
-                        <button
-                            className={`tab-btn ${activeTab === 'metrics' ? 'active' : ''}`}
-                            onClick={() => setActiveTab('metrics')}
-                        >
-                            📋 Quantified Lobe &amp; Leakage Table
-                        </button>
-                    </div>
-
                     <div className="viewport-content">
-                        {(activeTab === 'workbench' || activeTab === 'spectrum') && (
-                            <>
-                                {/* TRACE A: Time Domain Windowing */}
-                                <TimeDomainChart
-                                    timeData={timeData}
-                                    primaryWindow={primaryWindow}
-                                    theme={theme}
-                                />
+                        {/* TRACE A: Time Domain Windowing */}
+                        <TimeDomainChart
+                            timeData={timeData}
+                            primaryWindow={primaryWindow}
+                            theme={theme}
+                        />
 
-                                {/* TRACE B: Frequency Domain Spectrum */}
-                                <SpectrumChart
-                                    spectrumData={spectrumData}
-                                    overlayMode={overlayMode}
-                                    primaryWindow={primaryWindow}
-                                    compareWindow={compareWindow}
-                                    selectedWindows={selectedWindows}
-                                    fs={fs}
-                                    magScale={magScale}
-                                    theme={theme}
-                                />
-                            </>
-                        )}
+                        {/* TRACE B: Frequency Domain Spectrum */}
+                        <SpectrumChart
+                            spectrumData={spectrumData}
+                            overlayMode={overlayMode}
+                            primaryWindow={primaryWindow}
+                            compareWindow={compareWindow}
+                            selectedWindows={selectedWindows}
+                            fs={fs}
+                            magScale={magScale}
+                            theme={theme}
+                        />
 
-                        {(activeTab === 'workbench' || activeTab === 'metrics') && (
-                            <MetricsTable
-                                metricsList={metricsList}
-                                N={N}
-                                binSpacing={binSpacing}
-                                activeTab={activeTab}
-                                theme={theme}
-                            />
-                        )}
+                        {/* BENCHMARK TABLE: Real-Time Quantified Window Metrics */}
+                        <MetricsTable
+                            metricsList={metricsList}
+                            N={N}
+                            binSpacing={binSpacing}
+                            theme={theme}
+                        />
                     </div>
                 </main>
             </div>
