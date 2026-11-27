@@ -21,10 +21,15 @@ export default function App() {
         return window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
     });
 
-    // Sidebar drawer state (open by default, toggleable on mobile/desktop mode)
+    // Sidebar drawer state: on mobile / touch / portrait, start closed so charts get 100% width!
     const [isSidebarOpen, setIsSidebarOpen] = useState(() => {
         if (typeof window !== 'undefined') {
-            return window.innerWidth > 860;
+            const isTouch = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
+            const isPortrait = window.innerHeight > window.innerWidth;
+            if (isTouch || isPortrait || window.innerWidth < 1024) {
+                return false;
+            }
+            return true;
         }
         return true;
     });
@@ -69,7 +74,7 @@ export default function App() {
         );
     };
 
-    // Live Microphone Stream (Real-time Web App Feature)
+    // Live Microphone Stream
     const toggleMicrophone = async () => {
         if (isMicActive) {
             clearInterval(micIntervalRef.current);
@@ -172,7 +177,7 @@ export default function App() {
         selectedWindows.forEach((wType) => {
             const w = generateWindow(wType, N);
             const windowedSig = new Float64Array(N);
-            for (let n = 0; n < N; n++) windowedSig[n] = rawSignal[n] * w[n];
+            for (let n = 0; n < N; n++) windowedSig[n] * w[n];
             const magDB = computeMagnitudeSpectrumDB(windowedSig, N_fft);
             spectraByWindow[wType] = magDB;
             mList.push(quantifyWindowMetrics(wType, N, fs, magDB, 8192));
@@ -192,7 +197,7 @@ export default function App() {
         return { timeData: tData, spectrumData: sData, metricsList: mList };
     }, [signalType, N, fs, f1, f2, amp2, selectedWindows, activeTimeWindow, customSamples]);
 
-    // Export CSV for Project Report
+    // Export CSV
     const exportMetricsCSV = () => {
         const headers = ['Window,3dB_Width_Hz,3dB_Width_Bins,Null_Width_Hz,Null_Width_Bins,Peak_SideLobe_dB,Detected_Peak_Hz'];
         const rows = metricsList.map(
@@ -223,7 +228,7 @@ export default function App() {
             />
 
             <div className="workspace">
-                {/* Mobile backdrop to dismiss drawer */}
+                {/* Mobile backdrop to dismiss sidebar drawer */}
                 {isSidebarOpen && (
                     <div className="sidebar-backdrop" onClick={() => setIsSidebarOpen(false)} />
                 )}

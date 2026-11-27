@@ -20,13 +20,9 @@ export default function TopBar({
                     title="Toggle Parameters Sidebar"
                     aria-label="Toggle Parameters Sidebar"
                 >
-                    ⚙️ Controls
+                    ⚙️ Controls {isSidebarOpen ? '▾' : '▸'}
                 </button>
-                <span className="app-badge">SP09</span>
-                <span className="brand-text">DSP Workbench</span>
-            </div>
 
-            <div className="toolbar-actions">
                 <button
                     className="btn btn-theme-toggle"
                     onClick={toggleTheme}
@@ -36,6 +32,11 @@ export default function TopBar({
                     {theme === 'dark' ? '☀️ Light' : '🌙 Dark'}
                 </button>
 
+                <span className="app-badge">SP09</span>
+                <span className="brand-text">DSP Workbench</span>
+            </div>
+
+            <div className="toolbar-actions">
                 <button
                     className="btn"
                     onClick={() => applyPreset('coherent')}
@@ -69,7 +70,7 @@ export default function TopBar({
                     onClick={exportMetricsCSV}
                     title="Export Quantified Metrics to CSV"
                 >
-                    ⬇ Export CSV
+                    ⬇ CSV
                 </button>
             </div>
         </header>
