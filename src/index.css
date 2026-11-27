@@ -651,25 +651,31 @@ input[type="range"]::-moz-range-thumb {
 .metrics-table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 0.82rem;
-    white-space: nowrap;
+    font-size: 0.80rem;
 }
 
 .metrics-table th,
 .metrics-table td {
-    padding: 9px 12px;
+    padding: 7px 10px;
     text-align: left;
     border-bottom: 1px solid var(--border);
+    vertical-align: middle;
 }
 
 .metrics-table th {
     color: var(--text-muted);
     background: var(--table-th-bg);
     font-weight: 700;
-    font-size: 0.76rem;
+    font-size: 0.72rem;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.4px;
     font-family: monospace;
+    white-space: normal;
+    line-height: 1.25;
+}
+
+.metrics-table td {
+    white-space: nowrap;
 }
 
 .metrics-table tbody tr:hover {
@@ -677,7 +683,7 @@ input[type="range"]::-moz-range-thumb {
 }
 
 .badge {
-    padding: 3px 8px;
+    padding: 2px 7px;
     border-radius: 4px;
     font-weight: 700;
     font-size: 0.74rem;

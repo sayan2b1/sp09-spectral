@@ -19,12 +19,17 @@ export default function MetricsTable({ metricsList, N, binSpacing, theme }) {
                     <thead>
                         <tr>
                             <th>Window Function</th>
-                            <th>Theoretical PSLL</th>
-                            <th>-3 dB Main-Lobe Width</th>
+                            <th>Theor. PSLL</th>
+                            <th>-3 dB Width</th>
                             <th>Null-to-Null Width</th>
-                            <th>Measured PSL (dB)</th>
-                            <th>Leaked Power Ratio (%) <span style={{ fontSize: '0.74rem', opacity: 0.85, fontWeight: 'normal' }}>(Window Benchmark)</span></th>
-                            <th>Detected Peak</th>
+                            <th style={{ textAlign: 'center' }}>Measured PSL</th>
+                            <th style={{ textAlign: 'center' }}>
+                                Leaked Power (%)
+                                <span style={{ display: 'block', fontSize: '0.67rem', fontWeight: 400, opacity: 0.75, textTransform: 'none', letterSpacing: 0 }}>
+                                    (Benchmark)
+                                </span>
+                            </th>
+                            <th style={{ textAlign: 'right' }}>Detected Peak</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -67,7 +72,7 @@ export default function MetricsTable({ metricsList, N, binSpacing, theme }) {
                                     <td style={{ fontFamily: 'monospace' }}>{theoreticalPsll}</td>
                                     <td>{m.width3dB_Hz} Hz ({m.width3dB_Bins} bins)</td>
                                     <td>{m.nullWidth_Hz} Hz ({m.nullWidth_Bins} bins)</td>
-                                    <td>
+                                    <td style={{ textAlign: 'center' }}>
                                         <span
                                             className="badge"
                                             style={{
@@ -78,7 +83,7 @@ export default function MetricsTable({ metricsList, N, binSpacing, theme }) {
                                             {m.peakSideLobe_dB} dB
                                         </span>
                                     </td>
-                                    <td>
+                                    <td style={{ textAlign: 'center' }}>
                                         <span
                                             className="badge"
                                             style={{
@@ -89,7 +94,7 @@ export default function MetricsTable({ metricsList, N, binSpacing, theme }) {
                                             {leakedPower.toFixed(2)}%
                                         </span>
                                     </td>
-                                    <td style={{ fontFamily: 'monospace' }}>{m.detectedFreqHz} Hz</td>
+                                    <td style={{ textAlign: 'right', fontFamily: 'monospace' }}>{m.detectedFreqHz} Hz</td>
                                 </tr>
                             );
                         })}
